@@ -1,0 +1,41 @@
+Item_ID,Category,Item_Name,Brand,Specification,Unit,Quantity,Unit_Price (?),Total_Value (?),Supplier,Purchase_Date
+MAT001,Solar Panel,Mono PERC Panel,Anchor By Pansonic,620W,Nos,12,15000,180000,Maruti Nandan Solar,01-04-2026
+MAT002,Solar Panel,Poly Panel,Anchor By Pansonic,585W,Nos,10,12000,120000,Maruti Nandan Solar,02-04-2026
+MAT003,Inverter,Hybrid Inverter,Anchor By Pansonic,10kW,Nos,1,20000,20000,Maruti Nandan Solar,03-04-2026
+MAT004,Inverter,On-grid Inverter,Anchor By Pansonic,5kW,Nos,2,15000,15000,Maruti Nandan Solar,04-04-2026
+MAT005,Metal Pipe,GI Mounting Pipe,Anchor By Pansonic,2 inch,Meter,8,850,6800,Maruti Nandan Solar,05-04-2026
+MAT006,Metal Pipe,Aluminum Structure,Anchor By Pansonic,Solar Mount,Meter,10,400,4000,Maruti Nandan Solar,05-04-2026
+MAT007,Electrical,DC Solar Cable,Anchor By Pansonic,2.5sqmm,Meter,6,250,15000,Maruti Nandan Solar,06-04-2026
+MAT008,Electrical,AC Cable,Anchor By Pansonic,4.0sqmm,Meter,5,400,16500,Maruti Nandan Solar,06-04-2026
+MAT009,Electrical,MC4 Connector,Anchor By Pansonic,Pair,Set,3,1200,12000,Maruti Nandan Solar,07-04-2026
+MAT010,Electrical,Earthing Kit,Anchor By Pansonic,Complete Set,Nos,20,4000,20000,Maruti Nandan Solar,07-04-2026
+MAT011,Solar Panel,Mono PERC Panel,Anchor By Pansonic,620W,Nos,15,14000,210000,Maruti Nandan Solar,07-04-2025
+MAT012,Solar Panel,Poly Panel,Anchor By Pansonic,585W,Nos,12,12000,144000,Maruti Nandan Solar,07-04-2025
+MAT013,Inverter,Hybrid Inverter,Anchor By Pansonic,10kW,Nos,2,25000,25000,Maruti Nandan Solar,07-04-2025
+MAT014,Inverter,On-grid Inverter,Anchor By Pansonic,15kW,Nos,3,35000,105000,Maruti Nandan Solar,07-04-2025
+MAT015,Inverter,INO-Inveter,Anchor By Pansonic,5kW,Nos,1,30000,30000,Maruti Nandan Solar,07-04-2025
+MAT016,Inverter,Steller-inveter,Anchor By Pansonic,10kW,Nos,2,35000,70000,Maruti Nandan Solar,07-04-2025
+MAT017,Inverter,Hybrid Inverter,Anchor By Pansonic,20kW,Nos,1,45000,45000,Maruti Nandan Solar,07-04-2025
+MAT018,Inverter,INO-Inveter,Anchor By Pansonic,20kW,Nos,1,45000,45000,Maruti Nandan Solar,07-04-2025
+MAT019,Electrical,MC4 Connector,Anchor By Pansonic,Pair,Set,8,1200,9600,Maruti Nandan Solar,07-04-2025
+MAT020,Electrical,Earthing Kit,Anchor By Pansonic,Complete Set,Nos,5,2500,12500,Maruti Nandan Solar,07-04-2025
+MAT021,Solar Panel,Mono PERC Panel,Anchor By Pansonic,620W,Nos,15,15000,255000,Maruti Nandan Solar,07-04-2025
+MAT022,Solar Panel,N-TYPE TOPCRNPanel,Anchor By Pansonic,585W,Nos,10,12000,120000,Maruti Nandan Solar,07-04-2025
+MAT023,Solar Panel,N-TYPE TOPCRNPanel,Anchor By Pansonic,600kW,Nos,11,14500,159000,Maruti Nandan Solar,07-04-2025
+MAT024,Electrical,MC4 Connector,Anchor By Pansonic,Pair,Nos,3,5000,15000,Maruti Nandan Solar,07-04-2025
+MAT025,Electrical,GI Mounting Pipe,Anchor By Pansonic,2 inch,Meter,5,250,12500,Maruti Nandan Solar,07-04-2024
+MAT026,Electrical,Aluminum Structure,Anchor By Pansonic,Solar Mount,Meter,5,400,2000,Maruti Nandan Solar,07-04-2024
+MAT027,Electrical,DC Solar Cable,Anchor By Pansonic,2.5sqmm,Meter,5,250,12500,Maruti Nandan Solar,07-04-2024
+MAT028,Solar Panel,N-TYPE TOPCRNPanel,Anchor By Pansonic,620W,Nos,15,15000,225000,Maruti Nandan Solar,07-04-2024
+MAT029,Solar Panel,Mono PERC Panel,Anchor By Pansonic,585W,Nos,10,12000,120000,Maruti Nandan Solar,07-04-2024
+MAT030,Solar Panel,SUBSIDE Panel,Anchor By Pansonic,585W,Nos,15,15000,225000,Maruti Nandan Solar,07-04-2024
+MAT031,Solar Panel,SUBSIDE Panel,Anchor By Pansonic,585W,Nos,17,14000,238000,Maruti Nandan Solar,07-04-2024
+MAT032,Solar Panel,SUBSIDE Panel,Anchor By Pansonic,585W,Nos,18,12000,216000,Maruti Nandan Solar,07-04-2024
+MAT033,Inverter,Hybrid Inverter,Anchor By Pansonic,10kW,Nos,2,25000,50000,Maruti Nandan Solar,07-04-2024
+MAT034,Inverter,On-grid Inverter,Anchor By Pansonic,15kW,Nos,3,35000,105000,Maruti Nandan Solar,07-04-2024
+MAT035,Inverter,INO-Inveter,Anchor By Pansonic,25kW,Nos,1,45000,45000,Maruti Nandan Solar,07-04-2023
+MAT036,Inverter,Steller-inveter,Anchor By Pansonic,5kW,Nos,1,35000,35000,Maruti Nandan Solar,07-04-2023
+MAT037,Inverter,Hybrid Inverter,Anchor By Pansonic,20kW,Nos,1,45000,45000,Maruti Nandan Solar,07-04-2023
+MAT038,Electrical,AC Cable,Anchor By Pansonic,4.0sqmm,Meter,8,400,3200,Maruti Nandan Solar,07-04-2023
+MAT039,Electrical,MC4 Connector,Anchor By Pansonic,Pair,Set,8,1200,9600,Maruti Nandan Solar,07-04-2023
+MAT040,Electrical,Earthing Kit,Anchor By Pansonic,Complete Set,Nos,5,4000,20000,Maruti Nandan Solar,07-04-2023

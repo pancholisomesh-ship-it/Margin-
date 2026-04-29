@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SolarBag — Business Management System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=2) }}">
+  <style>
+
+  /* ── RESET & BASE ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --sun: #F5A623;
+  --sun-light: #FFD580;
+  --leaf: #2D6A4F;
+  --leaf-light: #52B788;
+  --earth: #1A1A18;
+  --sand: #F7F0E6;
+  --mist: #E8DDD0;
+  --text: #1A1A18;
+  --accent: #C0392B;
+  
+  /* New utility colors */
+  --glass: rgba(26, 26, 24, 0.85);
+  --border-light: rgba(247, 240, 230, 0.12);
+  --border-accent: rgba(245, 166, 35, 0.25);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--earth);
+  color: var(--sand);
+  overflow-x: hidden;
+  cursor: none;
+  line-height: 1.6;
+}
+
+/* ── CUSTOM CURSOR ── */
+.cursor {
+  width: 12px;
+  height: 12px;
+  background: var(--sun);
+  border-radius: 50%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1), 
+              background 0.3s ease;
+  transform: translate(-50%, -50%);
+}
+
+.cursor-ring {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--sun);
+  border-radius: 50%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  opacity: 0.6;
+}
+
+/* ── NAVIGATION ── */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 4rem;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(245, 166, 35, 0.15);
+  transition: all 0.3s ease;
+}
+
+.nav-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.85rem;
+  letter-spacing: 0.12em;
+  color: var(--sun);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-logo span {
+  color: var(--leaf-light);
+}
+
+.nav-links {
+  display: flex;
+  gap: 2.8rem;
+  list-style: none;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--mist);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--sun);
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.nav-links a:hover {
+  color: var(--sun);
+}
+
+.nav-links a:hover::after,
+.nav-links a.active::after {
+  width: 100%;
+}
+
+.nav-links a.active {
+  color: var(--sun);
+}
+
+/* ── HERO SECTION ── */
+.hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  padding: 8rem 4rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 65% 65% at 80% 45%, rgba(45, 106, 79, 0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 45% at 15% 75%, rgba(245, 166, 35, 0.12) 0%, transparent 65%);
+  z-index: 0;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--leaf-light);
+  border: 1px solid var(--leaf-light);
+  padding: 0.35rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.6rem;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.2s forwards;
+}
+
+h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(3.6rem, 7.5vw, 6.8rem);
+  line-height: 0.94;
+  letter-spacing: 0.02em;
+  margin-bottom: 1.6rem;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.4s forwards;
+}
+
+h1 em {
+  color: var(--sun);
+  font-style: normal;
+}
+
+.hero-sub {
+  font-size: 1.08rem;
+  font-weight: 300;
+  color: var(--mist);
+  line-height: 1.75;
+  max-width: 440px;
+  margin-bottom: 2.8rem;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.6s forwards;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.8s forwards;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.95rem 2.2rem;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.87rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: none;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  border: none;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+}
+
+.btn-primary {
+  background: var(--sun);
+  color: var(--earth);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 12px 40px rgba(245, 166, 35, 0.45);
+  background: #ffbb4d;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--sand);
+  border: 1.8px solid rgba(247, 240, 230, 0.35);
+}
+
+.btn-secondary:hover {
+  border-color: var(--sand);
+  background: rgba(247, 240, 230, 0.05);
+}
+
+/* Hero Visual */
+.hero-visual {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  animation: fadeIn 1.1s 0.6s forwards;
+}
+
+.poster-frame {
+  position: relative;
+  width: 355px;
+  height: 440px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 45px 90px rgba(0, 0, 0, 0.65),
+              0 0 0 1.5px rgba(245, 166, 35, 0.25);
+  transition: transform 0.4s ease;
+}
+
+.poster-frame:hover {
+  transform: scale(1.03);
+}
+
+.poster-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.7s ease;
+}
+
+.poster-frame:hover img {
+  transform: scale(1.06);
+}
+
+.poster-badge {
+  position: absolute;
+  bottom: 1.8rem;
+  left: 1.8rem;
+  background: rgba(26, 26, 24, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(245, 166, 35, 0.35);
+  border-radius: 6px;
+  padding: 0.85rem 1.3rem;
+}
+
+.poster-badge p {
+  font-size: 0.72rem;
+  color: var(--sun);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+
+.poster-badge strong {
+  font-size: 1.45rem;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.04em;
+  color: var(--sand);
+}
+
+.stat-bubble {
+  position: absolute;
+  background: rgba(26, 26, 24, 0.92);
+  border: 1px solid rgba(82, 183, 136, 0.45);
+  border-radius: 8px;
+  padding: 1rem 1.4rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.stat-bubble .num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.1rem;
+  color: var(--leaf-light);
+  line-height: 1;
+}
+
+.stat-bubble .label {
+  font-size: 0.73rem;
+  color: var(--mist);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+}
+
+.stat-bubble:nth-child(2) { top: 12%; right: -12%; animation: float 5s ease-in-out infinite; }
+.stat-bubble:nth-child(3) { bottom: 18%; right: -10%; animation: float 5.5s 1.2s ease-in-out infinite; }
+
+/* Stats Strip */
+.stats-strip {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 3.2rem 4rem;
+  border-top: 1px solid rgba(247, 240, 230, 0.08);
+  border-bottom: 1px solid rgba(247, 240, 230, 0.08);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-item .big {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3.2rem;
+  color: var(--sun);
+  line-height: 1;
+}
+
+.stat-item .desc {
+  font-size: 0.82rem;
+  color: var(--mist);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 0.4rem;
+}
+
+.divider {
+  width: 1px;
+  height: 58px;
+  background: rgba(247, 240, 230, 0.12);
+}
+
+/* Section Styling */
+.section {
+  padding: 7rem 4rem;
+}
+
+.section-head {
+  margin-bottom: 4rem;
+}
+
+.section-head .eyebrow {
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--sun);
+  margin-bottom: 0.8rem;
+}
+
+.section-head h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.4rem, 4.5vw, 3.8rem);
+  letter-spacing: 0.03em;
+  line-height: 1.05;
+  color: var(--sand);
+}
+
+.section-head h2 span {
+  color: var(--leaf-light);
+}
+
+/* Cards */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.8rem;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 2.2rem;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  cursor: none;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.08) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  border-color: rgba(245, 166, 35, 0.35);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.card-icon {
+  font-size: 2.4rem;
+  margin-bottom: 1.4rem;
+  display: block;
+}
+
+.card h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.55rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.7rem;
+  color: var(--sand);
+}
+
+.card p {
+  font-size: 0.9rem;
+  color: var(--mist);
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+.card-arrow {
+  position: absolute;
+  bottom: 1.8rem;
+  right: 1.8rem;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid rgba(245, 166, 35, 0.45);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sun);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover .card-arrow {
+  background: var(--sun);
+  color: var(--earth);
+  transform: translate(4px, -4px);
+}
+
+/* Prediction Section */
+.predict-section {
+  padding: 6rem 4rem;
+  background: linear-gradient(135deg, rgba(45, 106, 79, 0.18) 0%, transparent 65%);
+  border-top: 1px solid rgba(82, 183, 136, 0.2);
+  border-bottom: 1px solid rgba(82, 183, 136, 0.2);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5.5rem;
+  align-items: center;
+}
+
+.predict-label {
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--leaf-light);
+  margin-bottom: 1.1rem;
+}
+
+.predict-section h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.6rem, 4.8vw, 4.2rem);
+  line-height: 0.96;
+  margin-bottom: 1.4rem;
+}
+
+.predict-section h2 em {
+  color: var(--sun);
+  font-style: normal;
+}
+
+.predict-section p {
+  color: var(--mist);
+  line-height: 1.75;
+  font-weight: 300;
+  font-size: 0.97rem;
+  margin-bottom: 2.2rem;
+}
+
+/* Chart Mock */
+.chart-mock {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 2.4rem;
+}
+
+.chart-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sun);
+  margin-bottom: 1.6rem;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.9rem;
+  height: 135px;
+}
+
+.bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: height 1.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bar.solar { background: linear-gradient(to top, var(--sun), var(--sun-light)); }
+.bar.bags  { background: linear-gradient(to top, var(--leaf), var(--leaf-light)); }
+
+.bar-lbl {
+  font-size: 0.68rem;
+  color: var(--mist);
+  letter-spacing: 0.06em;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 1.8rem;
+  margin-top: 1.4rem;
+}
+
+.legend-dot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--mist);
+}
+
+.legend-dot::before {
+  content: '';
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+
+.legend-dot.solar::before { background: var(--sun); }
+.legend-dot.bags::before { background: var(--leaf-light); }
+
+/* Footer */
+footer {
+  padding: 3.5rem 4rem;
+  border-top: 1px solid rgba(247, 240, 230, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+footer .logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.55rem;
+  letter-spacing: 0.12em;
+  color: var(--sun);
+}
+
+footer .logo span {
+  color: var(--leaf-light);
+}
+
+footer p {
+  font-size: 0.8rem;
+  color: rgba(247, 240, 230, 0.4);
+}
+
+.foot-links {
+  display: flex;
+  gap: 1.8rem;
+}
+
+.foot-links a {
+  color: rgba(247, 240, 230, 0.45);
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: color 0.25s ease;
+}
+
+.foot-links a:hover {
+  color: var(--sun);
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(35px);
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── MODALS ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  padding: 2rem;
+}
+
+.modal-overlay.open {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-box {
+  background: #1e1e1c;
+  border: 1px solid var(--border-accent);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2.8rem;
+  position: relative;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1.4rem;
+  right: 1.4rem;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--mist);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: none;
+  transition: all 0.25s ease;
+}
+
+.modal-close:hover {
+  background: var(--sun);
+  color: var(--earth);
+  transform: rotate(90deg);
+}
+
+/* Eco & Contact Modal Styles remain mostly same but improved spacing & typography */
+
+@media (max-width: 1024px) {
+  nav { padding: 1.3rem 2rem; }
+  .hero { grid-template-columns: 1fr; padding: 7.5rem 2rem 4rem; text-align: center; }
+  .hero-visual { margin-top: 3rem; }
+  .stat-bubble:nth-child(2), .stat-bubble:nth-child(3) { display: none; }
+  .stats-strip { padding: 2.5rem 2rem; flex-wrap: wrap; gap: 2rem; }
+  .divider { display: none; }
+  .section, .predict-section { padding: 5rem 2rem; }
+  .predict-section { gap: 3rem; }
+}
+
+@media (max-width: 640px) {
+  .hero-cta { justify-content: center; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .eco-grid { grid-template-columns: 1fr; }
+  .contact-grid { grid-template-columns: 1fr; }
+  footer { flex-direction: column; text-align: center; gap: 2rem; }
+}
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">Solar<span>Bag</span></a>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#prediction">Prediction</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="#" onclick="openContact(event)">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <span class="hero-tag">Business Management System</span>
+      <h1>Solar &amp; <em>Paperbag</em><br>Business Suite</h1>
+      <p class="hero-sub">Harness AI-driven gross predictions, live dashboards, and actionable insights to scale your solar and eco-packaging operations with confidence.</p>
+      <div class="hero-cta">
+        <a href="/prediction" class="btn btn-primary">⚡ Run Prediction</a>
+        <a href="#dashboard" class="btn btn-secondary">View Dashboard →</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="poster-frame">
+        <img src="/static/poster.jpg" alt="Business Poster" onerror="this.style.background='linear-gradient(135deg,#2D6A4F 0%,#1A1A18 100%)';this.style.minHeight='420px';" />
+        <div class="poster-badge">
+          <p>Gross Prediction</p>
+          <strong>AI Powered</strong>
+        </div>
+      </div>
+      <div class="stat-bubble">
+        <div class="num">98%</div>
+        <div class="label">Accuracy</div>
+      </div>
+      <div class="stat-bubble">
+        <div class="num">24/7</div>
+        <div class="label">Live Data</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS STRIP -->
+  <div class="stats-strip reveal">
+    <div class="stat-item"><div class="big" data-target="1240">0</div><div class="desc">Predictions Run</div></div>
+    <div class="divider"></div>
+    <div class="stat-item"><div class="big" data-target="98">0</div><div class="desc">% Forecast Accuracy</div></div>
+    <div class="divider"></div>
+    <div class="stat-item"><div class="big" data-target="2">0</div><div class="desc">Business Units</div></div>
+    <div class="divider"></div>
+    <div class="stat-item"><div class="big" data-target="365">0</div><div class="desc">Days of Data</div></div>
+  </div>
+
+  <!-- CARDS -->
+  <section class="section" id="about">
+    <div class="section-head reveal">
+      <div class="eyebrow">Core Modules</div>
+      <h2>Everything You Need To <span>Grow</span></h2>
+    </div>
+    <div class="cards-grid">
+      <a href="#prediction" class="card reveal">
+        <span class="card-icon">☀️</span>
+        <h3>Gross Prediction</h3>
+        <p>Forecast revenue for solar panels and paper bags using historical data and market signals.</p>
+        <div class="card-arrow">→</div>
+      </a>
+      <a href="#dashboard" class="card reveal">
+        <span class="card-icon">📊</span>
+        <h3>Live Dashboard</h3>
+        <p>Monitor KPIs, track sales trends, and visualize performance in real time across both businesses.</p>
+        <div class="card-arrow">→</div>
+      </a>
+      <a href="#" class="card reveal" onclick="openEco(event)">
+        <span class="card-icon">🌿</span>
+        <h3>Eco Analytics</h3>
+        <p>Measure sustainability impact, carbon offset from solar deployments, and eco-bag adoption rates.</p>
+        <div class="card-arrow">→</div>
+      </a>
+      <a href="#" class="card reveal" onclick="openContact(event)">
+        <span class="card-icon">📬</span>
+        <h3>Contact & Support</h3>
+        <p>Reach the team for demos, onboarding, or enterprise-level integrations and data exports.</p>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- PREDICTION HIGHLIGHT -->
+  <section class="predict-section" id="prediction">
+    <div class="reveal">
+      <div class="predict-label">AI Prediction Engine</div>
+      <h2>Forecast Your <em>Gross</em><br>Revenue</h2>
+      <p>Our prediction model analyses seasonality, market trends, and your historical sales to project quarterly and annual gross revenue for both solar and paper bag product lines — so you plan, not guess.</p>
+      <a href="#prediction" class="btn btn-primary">Start Predicting →</a>
+    </div>
+    <div class="chart-mock reveal">
+      <div class="chart-title">Projected Revenue — Quarterly</div>
+      <div class="bars" id="barChart">
+        <div class="bar-wrap"><div class="bar solar" style="height:0" data-h="60%"></div><span class="bar-lbl">Q1</span></div>
+        <div class="bar-wrap"><div class="bar bags"  style="height:0" data-h="40%"></div><span class="bar-lbl">Q1</span></div>
+        <div class="bar-wrap"><div class="bar solar" style="height:0" data-h="75%"></div><span class="bar-lbl">Q2</span></div>
+        <div class="bar-wrap"><div class="bar bags"  style="height:0" data-h="55%"></div><span class="bar-lbl">Q2</span></div>
+        <div class="bar-wrap"><div class="bar solar" style="height:0" data-h="85%"></div><span class="bar-lbl">Q3</span></div>
+        <div class="bar-wrap"><div class="bar bags"  style="height:0" data-h="65%"></div><span class="bar-lbl">Q3</span></div>
+        <div class="bar-wrap"><div class="bar solar" style="height:0" data-h="95%"></div><span class="bar-lbl">Q4</span></div>
+        <div class="bar-wrap"><div class="bar bags"  style="height:0" data-h="78%"></div><span class="bar-lbl">Q4</span></div>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-dot solar">Solar</div>
+        <div class="legend-dot bags">Paper Bags</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="logo">Solar<span>Bag</span></div>
+    <div class="foot-links">
+      <a href="#about">About</a>
+      <a href="#prediction">Prediction</a>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#" onclick="openContact(event)">Contact</a>
+    </div>
+    <p>© 2025 SolarBag Business Suite. All rights reserved.</p>
+  </footer>
+
+  <!-- ── ECO ANALYTICS MODAL ── -->
+  <div class="modal-overlay" id="ecoModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('ecoModal')">✕</button>
+      <div class="modal-eyebrow eco">Sustainability Module</div>
+      <div class="modal-title">Eco Analytics</div>
+      <div class="modal-desc">Real-time sustainability metrics tracking carbon offset from solar deployments and eco-bag adoption. Every unit sold contributes to measurable environmental impact.</div>
+
+      <div class="eco-grid">
+        <div class="eco-card">
+          <div class="eco-num" id="co2Counter">0</div>
+          <div class="eco-label">Tonnes CO₂ Offset</div>
+        </div>
+        <div class="eco-card">
+          <div class="eco-num" id="bagCounter">0</div>
+          <div class="eco-label">Eco Bags Adopted</div>
+        </div>
+        <div class="eco-card">
+          <div class="eco-num" id="kwCounter">0</div>
+          <div class="eco-label">MWh Solar Generated</div>
+        </div>
+      </div>
+
+      <div class="eco-bar-section">
+        <div class="eco-bar-title">Adoption Rate by Category</div>
+        <div class="eco-bar-row">
+          <span class="eco-bar-label">Solar Panels</span>
+          <div class="eco-bar-track"><div class="eco-bar-fill green" id="bar-solar" style="width:0%"></div></div>
+          <span class="eco-bar-val">87%</span>
+        </div>
+        <div class="eco-bar-row">
+          <span class="eco-bar-label">Kraft Paper Bags</span>
+          <div class="eco-bar-track"><div class="eco-bar-fill green" id="bar-kraft" style="width:0%"></div></div>
+          <span class="eco-bar-val">74%</span>
+        </div>
+        <div class="eco-bar-row">
+          <span class="eco-bar-label">Handle Bags</span>
+          <div class="eco-bar-track"><div class="eco-bar-fill gold" id="bar-handle" style="width:0%"></div></div>
+          <span class="eco-bar-val">61%</span>
+        </div>
+        <div class="eco-bar-row">
+          <span class="eco-bar-label">Mini Tote Bags</span>
+          <div class="eco-bar-track"><div class="eco-bar-fill gold" id="bar-tote" style="width:0%"></div></div>
+          <span class="eco-bar-val">48%</span>
+        </div>
+        <div class="eco-bar-row">
+          <span class="eco-bar-label">Corporate Sets</span>
+          <div class="eco-bar-track"><div class="eco-bar-fill green" id="bar-corp" style="width:0%"></div></div>
+          <span class="eco-bar-val">93%</span>
+        </div>
+      </div>
+
+      <div class="eco-bar-title" style="margin-bottom:1rem;">Key Insights</div>
+      <div class="eco-insight"><p><strong>Carbon Offset:</strong> Your solar deployments have offset an estimated 142 tonnes of CO₂ this year — equivalent to planting 6,500+ trees.</p></div>
+      <div class="eco-insight"><p><strong>Plastic Replacement:</strong> 38,400 eco-bags sold have replaced an estimated <strong>192,000 single-use plastic bags</strong> from circulation.</p></div>
+      <div class="eco-insight"><p><strong>Waste Reduction:</strong> Recent inventory optimisation cut material waste by <strong>18%</strong>, saving ₹7,400 and reducing landfill contribution.</p></div>
+      <div class="eco-insight"><p><strong>Energy Efficiency:</strong> Solar units installed in Q3 are generating <strong>2,840 MWh</strong> of clean energy monthly across client sites.</p></div>
+
+      <div style="margin-top:1.5rem;text-align:center;">
+        <a href="#prediction" class="btn btn-primary" onclick="closeModal('ecoModal')">View Full Prediction →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONTACT & SUPPORT MODAL ── -->
+  <div class="modal-overlay" id="contactModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('contactModal')">✕</button>
+      <div class="modal-eyebrow contact">Support & Enquiries</div>
+      <div class="modal-title">Contact & Support</div>
+      <div class="modal-desc">Reach our team for product demos, enterprise onboarding, data export requests, or any technical support. We typically respond within 24 hours.</div>
+
+      <div class="contact-info-row">
+        <div class="contact-info-item"><span class="icon">📧</span> support@solarbag.in</div>
+        <div class="contact-info-item"><span class="icon">📞</span> +91 98765 43210</div>
+        <div class="contact-info-item"><span class="icon">📍</span> Jaipur, Rajasthan</div>
+      </div>
+
+      <div id="contactForm">
+        <div class="contact-grid">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="fname" placeholder="Rahul" />
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="lname" placeholder="Sharma" />
+          </div>
+        </div>
+        <div class="contact-grid">
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="email" placeholder="rahul@example.com" />
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="phone" placeholder="+91 98765 00000" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Enquiry Type</label>
+          <select id="enquiryType">
+            <option value="">— Select a topic —</option>
+            <option value="demo">Product Demo</option>
+            <option value="onboarding">Enterprise Onboarding</option>
+            <option value="data">Data Export / Integration</option>
+            <option value="technical">Technical Support</option>
+            <option value="billing">Billing / Pricing</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Business / Company Name</label>
+          <input type="text" id="company" placeholder="Your Business Name" />
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <textarea id="message" placeholder="Tell us about your requirements, questions, or the issue you're facing..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="submitContact()" style="cursor:none;">Send Message ✉</button>
+          <button class="btn btn-secondary" onclick="closeModal('contactModal')" style="cursor:none;">Cancel</button>
+        </div>
+
+        <div class="submit-feedback" id="submitFeedback">
+          ✅ Message sent successfully! Our team will reach you within 24 hours.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── Custom Cursor ── */
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    document.addEventListener('mousemove', e => {
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+      ring.style.left = e.clientX + 'px';
+      ring.style.top = e.clientY + 'px';
+    });
+    document.querySelectorAll('a, button, .card, .btn, input, select, textarea').forEach(el => {
+      el.addEventListener('mouseenter', () => { cursor.style.transform = 'translate(-50%,-50%) scale(2)'; ring.style.opacity = '1'; });
+      el.addEventListener('mouseleave', () => { cursor.style.transform = 'translate(-50%,-50%) scale(1)'; ring.style.opacity = '0.6'; });
+    });
+
+    /* ── Scroll Reveal ── */
+    const revealEls = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          entry.target.querySelectorAll('[data-target]').forEach(animateCounter);
+          if (entry.target.querySelector('#barChart')) animateBars();
+        }
+      });
+    }, { threshold: 0.15 });
+    revealEls.forEach(el => observer.observe(el));
+
+    /* ── Counter Animation ── */
+    function animateCounter(el) {
+      if (el.dataset.animated) return;
+      el.dataset.animated = true;
+      const target = Number(el.dataset.target);
+      const duration = 1500; const stepTime = 20;
+      const increment = target / (duration / stepTime);
+      let count = 0;
+      const timer = setInterval(() => {
+        count += increment;
+        if (count >= target) { el.textContent = target; clearInterval(timer); }
+        else { el.textContent = Math.floor(count); }
+      }, stepTime);
+    }
+
+    /* ── Bar Chart Animation ── */
+    function animateBars() {
+      document.querySelectorAll('.bar').forEach(bar => {
+        if (bar.dataset.done) return;
+        bar.dataset.done = true;
+        setTimeout(() => { bar.style.height = bar.dataset.h; }, 200);
+      });
+    }
+
+    /* ── Modal Open/Close ── */
+    function openEco(e) {
+      if (e) e.preventDefault();
+      document.getElementById('ecoModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        animateEcoCounters();
+        animateEcoBars();
+      }, 200);
+    }
+
+    function openContact(e) {
+      if (e) e.preventDefault();
+      document.getElementById('contactModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    /* Close on overlay click */
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === this) closeModal(this.id);
+      });
+    });
+
+    /* ── Eco Counters ── */
+    function animateEcoCounters() {
+      animateEl('co2Counter', 142);
+      animateEl('bagCounter', 38400);
+      animateEl('kwCounter', 2840);
+    }
+    function animateEl(id, target) {
+      const el = document.getElementById(id);
+      if (!el || el.dataset.done) return;
+      el.dataset.done = true;
+      const duration = 1600; const step = 20;
+      const inc = target / (duration / step);
+      let count = 0;
+      const t = setInterval(() => {
+        count += inc;
+        if (count >= target) { el.textContent = target.toLocaleString(); clearInterval(t); }
+        else { el.textContent = Math.floor(count).toLocaleString(); }
+      }, step);
+    }
+
+    /* ── Eco Bars ── */
+    function animateEcoBars() {
+      const bars = [
+        { id: 'bar-solar', width: '87%' },
+        { id: 'bar-kraft', width: '74%' },
+        { id: 'bar-handle', width: '61%' },
+        { id: 'bar-tote', width: '48%' },
+        { id: 'bar-corp', width: '93%' },
+      ];
+      bars.forEach((b, i) => {
+        setTimeout(() => {
+          const el = document.getElementById(b.id);
+          if (el) el.style.width = b.width;
+        }, i * 150);
+      });
+    }
+
+    /* ── Contact Submit ── */
+    function submitContact() {
+      const fname = document.getElementById('fname').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const type = document.getElementById('enquiryType').value;
+
+      if (!fname) { alert('Please enter your first name.'); return; }
+      if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
+      if (!type) { alert('Please select an enquiry type.'); return; }
+      if (!message) { alert('Please enter your message.'); return; }
+
+      const feedback = document.getElementById('submitFeedback');
+      feedback.classList.add('show');
+
+      /* Reset form fields */
+      ['fname','lname','email','phone','company','message'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      document.getElementById('enquiryType').selectedIndex = 0;
+
+      setTimeout(() => { feedback.classList.remove('show'); }, 5000);
+    }
+
+    /* ── Keyboard ESC closes modal ── */
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeModal('ecoModal');
+        closeModal('contactModal');
+      }
+    });
+  </script>
+</body>
+</html>

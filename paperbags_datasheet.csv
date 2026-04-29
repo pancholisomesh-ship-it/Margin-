@@ -1,0 +1,41 @@
+Item_ID,Bag_Type,Size,Material,GSM,Color,Quantity,Unit_Price (?),Total_Value (?),Supplier,Purchase_Date
+PB001,Shopping Bag,10x12 inch,Kraft Paper,120,Brown,500,12,6000,Green01 Supplier,01-04-2026
+PB002,Food Bag,8x10 inch,White Paper,100,White,700,9,6300,EcoPack Ltd,02-03-2026
+PB003,Gift Bag,12x16 inch,Art Paper,150,Printed,300,25,7500,PrintWorld,03-03-2026
+PB004,Carry Bag,14x18 inch,Kraft Paper,140,Brown,400,18,7200,Green01 Supplier,04-03-2026
+PB005,Medicine Bag,6x8 inch,Recycled Paper,90,White,1000,6,6000,EcoPack Ltd,05-03-2026
+PB006,Luxury Bag,16x20 inch,Art Paper,180,Custom Print,150,45,6750,Premium Prints,06-03-2026
+PB007,Bakery Bag,7x9 inch,Butter Paper,80,Natural,800,7,5600,BakePack,07-03-2026
+PB008,Garment Bag,18x22 inch,Kraft Paper,160,Brown,250,30,7500,Green01 Supplier,08-03-2026
+PB009,Wine Bag,5x14 inch,Hard Paper,200,Printed,120,15,6300,Premium Prints,09-03-2026
+PB010,General Carry Bag,9x11 inch,Recycled Paper,110,Brown,600,10,6000,EcoPack Ltd,10-03-2026
+PB011,Shopping Bag,10x12 inch,Kraft Paper,120,Brown,500,12,6000,Green01 Supplier,01-02-2026
+PB012,Food Bag,8x10 inch,White Paper,100,White,700,9,6300,EcoPack Ltd,02-02-2026
+PB013,Gift Bag,12x16 inch,Art Paper,150,Printed,300,25,7500,PrintWorld,03-02-2026
+PB014,Carry Bag,14x18 inch,Kraft Paper,140,Brown,400,18,7200,Green01 Supplier,04-02-2026
+PB015,Medicine Bag,6x8 inch,Recycled Paper,90,White,1000,6,6000,EcoPack Ltd,05-02-2026
+PB016,Luxury Bag,16x20 inch,Art Paper,180,Custom Print,150,45,6750,Premium Prints,06-02-2026
+PB017,Bakery Bag,7x9 inch,Butter Paper,80,Natural,800,7,5600,BakePack,07-02-2026
+PB018,Garment Bag,18x22 inch,Kraft Paper,160,Brown,250,30,7500,Green01 Supplier,08-02-2026
+PB019,Wine Bag,5x14 inch,Hard Paper,200,Printed,120,15,6300,Premium Prints,09-02-2026
+PB020,General Carry Bag,9x11 inch,Recycled Paper,110,Brown,600,10,6000,EcoPack Ltd,10-02-2026
+PB021,Shopping Bag,10x12 inch,Kraft Paper,120,Brown,500,12,6000,Green01 Supplier,01-01-2026
+PB022,Food Bag,8x10 inch,White Paper,100,White,700,9,6300,EcoPack Ltd,02-01-2026
+PB023,Gift Bag,12x16 inch,Art Paper,150,Printed,300,25,7500,PrintWorld,03-01-2026
+PB024,Carry Bag,14x18 inch,Kraft Paper,140,Brown,400,18,7200,Green01 Supplier,04-01-2026
+PB025,Medicine Bag,6x8 inch,Recycled Paper,90,White,1000,6,6000,EcoPack Ltd,05-01-2026
+PB026,Luxury Bag,16x20 inch,Art Paper,180,Custom Print,150,45,6750,Premium Prints,06-01-2026
+PB027,Bakery Bag,7x9 inch,Butter Paper,80,Natural,800,7,5600,BakePack,07-01-2026
+PB028,Garment Bag,18x22 inch,Kraft Paper,160,Brown,250,30,7500,Green01 Supplier,08-01-2026
+PB029,Wine Bag,5x14 inch,Hard Paper,200,Printed,120,15,6300,Premium Prints,09-01-2026
+PB030,General Carry Bag,9x11 inch,Recycled Paper,110,Brown,600,10,6000,EcoPack Ltd,10-01-2026
+PB031,Shopping Bag,10x12 inch,Kraft Paper,120,Brown,500,12,6000,Green01 Supplier,01-12-2025
+PB032,Food Bag,8x10 inch,White Paper,100,White,700,9,6300,EcoPack Ltd,02-12-2025
+PB033,Gift Bag,12x16 inch,Art Paper,150,Printed,300,25,7500,PrintWorld,03-12-2025
+PB034,Carry Bag,14x18 inch,Kraft Paper,140,Brown,400,18,7200,Green01 Supplier,04-12-2025
+PB035,Medicine Bag,6x8 inch,Recycled Paper,90,White,1000,6,6000,EcoPack Ltd,05-12-2025
+PB036,Luxury Bag,16x20 inch,Art Paper,180,Custom Print,150,45,6750,Premium Prints,06-12-2025
+PB037,Bakery Bag,7x9 inch,Butter Paper,80,Natural,800,7,5600,BakePack,07-11-2025
+PB038,Garment Bag,18x22 inch,Kraft Paper,160,Brown,250,30,7500,Green01 Supplier,08-11-2025
+PB039,Wine Bag,5x14 inch,Hard Paper,200,Printed,120,15,6300,Premium Prints,09-11-2025
+PB040,General Carry Bag,9x11 inch,Recycled Paper,110,Brown,600,10,6000,EcoPack Ltd,10-11-2025

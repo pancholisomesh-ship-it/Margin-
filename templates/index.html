@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Business AI Login</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f0eff8;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e0dff5;
+  border-radius: 16px;
+  padding: 2rem 2rem 1.75rem;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 4px 24px rgba(83,74,183,0.08);
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #534AB7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+.logo svg {
+  width: 22px;
+  height: 22px;
+  fill: white;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.sub {
+  font-size: 13px;
+  color: #6b6b8a;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.tab-bar {
+  display: flex;
+  background: #f0eff8;
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 1.5rem;
+  gap: 3px;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #6b6b8a;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.tab.active {
+  background: #ffffff;
+  color: #534AB7;
+  border: 1px solid #e0dff5;
+  font-weight: 600;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b6b8a;
+  margin-bottom: 5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+input[type=text],
+input[type=password] {
+  width: 100%;
+  padding: 10px 13px;
+  font-size: 14px;
+  border: 1px solid #d9d8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1a1a2e;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus {
+  border-color: #534AB7;
+  box-shadow: 0 0 0 3px rgba(83,74,183,0.12);
+}
+
+input::placeholder {
+  color: #b0afc8;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #534AB7;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+
+.btn-primary:hover { background: #3C3489; }
+.btn-primary:active { transform: scale(0.98); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 1.25rem 0;
+}
+
+.divider span {
+  font-size: 12px;
+  color: #b0afc8;
+  white-space: nowrap;
+}
+
+.divider hr {
+  flex: 1;
+  border: none;
+  border-top: 1px solid #e9e8f5;
+}
+
+.switch {
+  font-size: 13px;
+  text-align: center;
+  color: #6b6b8a;
+}
+
+.switch a {
+  color: #534AB7;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.switch a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+
+
+<div class="card">
+
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+  </div>
+
+  <h2 id="form-title">Welcome back</h2>
+  <p class="sub" id="form-sub">Sign in to your account</p>
+
+  <div class="tab-bar">
+    <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign in</div>
+    <div class="tab" id="tab-register" onclick="switchTab('register')">Register</div>
+  </div>
+
+  <!-- Login Form -->
+  <div id="login-form">
+    <div class="field">
+      <label>Username</label>
+      <input type="text" placeholder="Enter your username" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" placeholder="••••••••" />
+    </div>
+    <button class="btn-primary" onclick="handleLogin()">Sign in</button>
+  </div>
+
+  <!-- Register Form -->
+  <div id="register-form" style="display:none;">
+    <div class="field">
+      <label>Full name</label>
+      <input type="text" placeholder="Your full name" />
+    </div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" placeholder="Choose a username" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" placeholder="••••••••" />
+    </div>
+    <button class="btn-primary" onclick="handleRegister()">Create account</button>
+  </div>
+
+  <div class="divider">
+    <hr><span>or</span><hr>
+  </div>
+
+  <div class="switch" id="switch-text">
+    New here? <a onclick="switchTab('register')">Create an account</a>
+  </div>
+
+</div>
+
+<script>
+function switchTab(tab) {
+  var isLogin = tab === 'login';
+
+  document.getElementById('login-form').style.display    = isLogin ? 'block' : 'none';
+  document.getElementById('register-form').style.display = isLogin ? 'none'  : 'block';
+  document.getElementById('tab-login').className    = 'tab' + (isLogin  ? ' active' : '');
+  document.getElementById('tab-register').className = 'tab' + (!isLogin ? ' active' : '');
+  document.getElementById('form-title').textContent = isLogin ? 'Welcome back'   : 'Create account';
+  document.getElementById('form-sub').textContent   = isLogin ? 'Sign in to your account' : 'Join Business System today';
+  document.getElementById('switch-text').innerHTML  = isLogin
+    ? 'New here? <a onclick="switchTab(\'register\')">Create an account</a>'
+    : 'Already have an account? <a onclick="switchTab(\'login\')">Sign in</a>';
+}
+
+function handleLogin() {
+  window.location.href = "home";  // ← fixed to match actual filename
+}
+
+function handleRegister() {
+  alert("Account created! You can now sign in.");
+  switchTab('login');
+}
+function goBusiness() {
+  window.location.href = "prediction";   // ← fixed
+}
+
+fetch("/predict", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+    
+});
+</script>
+
+</body>
+</html>

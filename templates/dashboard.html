@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>BizOS — Business Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a12;
+  --surface: #111120;
+  --surface2: #181828;
+  --surface3: #1f1f35;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #7c6fff;
+  --accent2: #4ff8c8;
+  --accent3: #ff6b8a;
+  --accent4: #ffc600;
+  --text: #f0eeff;
+  --muted: #7b7a96;
+  --card-radius: 16px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1rem;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0.5rem 1.75rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+}
+
+.brand-icon {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), #5b4de8);
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-icon svg { width: 18px; height: 18px; fill: white; }
+.brand-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.nav-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  border: none; background: transparent;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; width: 100%; text-align: left;
+  transition: all 0.15s;
+}
+.nav-btn svg { width: 17px; height: 17px; opacity: 0.7; flex-shrink: 0; }
+.nav-btn:hover { background: var(--surface2); color: var(--text); }
+.nav-btn.active { background: rgba(124,111,255,0.15); color: var(--accent); }
+.nav-btn.active svg { opacity: 1; }
+
+.nav-section-label {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); padding: 10px 12px 4px;
+  opacity: 0.6;
+}
+
+.nav-btn.cta {
+  margin-top: 8px;
+  background: linear-gradient(135deg, var(--accent), #5b4de8);
+  color: white; justify-content: center; font-weight: 600;
+}
+.nav-btn.cta:hover { filter: brightness(1.1); }
+.nav-btn.cta svg { opacity: 1; }
+.sidebar-spacer { flex: 1; }
+
+/* ── Main ── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2.5rem 2rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface3) transparent;
+}
+
+.page-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px; font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+.badge {
+  font-size: 12px; font-weight: 500;
+  padding: 5px 12px; border-radius: 999px;
+  background: rgba(79,248,200,0.1);
+  color: var(--accent2);
+  border: 1px solid rgba(79,248,200,0.2);
+  display: flex; align-items: center; gap: 6px;
+}
+.badge::before {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent2);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+}
+
+/* ── Section visibility ── */
+.section { display: none; animation: fadeIn 0.25s ease; }
+.section.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Stat cards ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 1.75rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 1.25rem 1.5rem;
+  position: relative; overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+}
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.stat-card.profit::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.stat-card.orders::before { background: linear-gradient(90deg, var(--accent2), #00d4ff); }
+.stat-card.returns::before { background: linear(90deg, var(--accent3), var(--accent4)); background: linear-gradient(90deg, var(--accent3), var(--accent4)); }
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border2);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+.stat-card .click-hint {
+  position: absolute; top: 12px; right: 14px;
+  font-size: 10px; color: var(--muted);
+  opacity: 0; transition: opacity 0.15s;
+  display: flex; align-items: center; gap: 4px;
+}
+.stat-card:hover .click-hint { opacity: 1; }
+
+.stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-value { font-size: 30px; font-weight: 600; margin-top: 6px; letter-spacing: -0.03em; }
+.stat-change { font-size: 12px; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+.up { color: var(--accent2); }
+.down { color: var(--accent3); }
+
+/* ── Chart ── */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+.chart-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+.chart-title { font-size: 14px; font-weight: 600; }
+.chart-tabs { display: flex; gap: 6px; }
+.chart-tab {
+  font-size: 12px; padding: 4px 10px;
+  border-radius: 6px; border: none;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  font-weight: 500; transition: all 0.15s;
+  background: var(--surface2); color: var(--muted);
+}
+.chart-tab.active { background: rgba(124,111,255,0.2); color: var(--accent); }
+
+.chart-bars {
+  display: flex; align-items: flex-end;
+  gap: 8px; height: 150px;
+}
+.bar-wrap {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; height: 100%;
+  justify-content: flex-end; cursor: pointer;
+  position: relative;
+}
+.bar {
+  width: 100%; border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, var(--accent) 0%, rgba(124,111,255,0.25) 100%);
+  transition: opacity 0.15s, transform 0.15s;
+  position: relative;
+}
+.bar-wrap:hover .bar { opacity: 0.85; transform: scaleY(1.03); transform-origin: bottom; }
+.bar-tooltip {
+  position: absolute; bottom: calc(100% + 8px);
+  left: 50%; transform: translateX(-50%);
+  background: var(--surface3); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 6px 10px;
+  font-size: 12px; font-weight: 600; color: var(--text);
+  white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity 0.15s;
+}
+.bar-wrap:hover .bar-tooltip { opacity: 1; }
+.bar-label { font-size: 11px; color: var(--muted); }
+
+/* ── Table ── */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+}
+.table-head {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px; font-weight: 600;
+  display: flex; align-items: center;
+  justify-content: space-between;
+}
+.search-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 12px;
+  font-size: 13px; color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  outline: none; width: 200px;
+  transition: border-color 0.15s;
+}
+.search-box:focus { border-color: var(--accent); }
+.search-box::placeholder { color: var(--muted); }
+
+table { width: 100%; border-collapse: collapse; }
+th {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 10px 16px; text-align: left;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; user-select: none;
+  transition: color 0.15s;
+}
+th:hover { color: var(--text); }
+th .sort-icon { font-size: 10px; margin-left: 4px; opacity: 0.5; }
+td {
+  font-size: 13px; padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text); cursor: pointer;
+  transition: background 0.15s;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(124,111,255,0.05); }
+
+.status {
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 999px;
+  display: inline-block;
+}
+.status.delivered { background: rgba(79,248,200,0.1); color: var(--accent2); }
+.status.pending { background: rgba(255,198,0,0.1); color: var(--accent4); }
+.status.cancelled { background: rgba(255,107,138,0.1); color: var(--accent3); }
+
+/* ── History ── */
+.timeline { display: flex; flex-direction: column; gap: 12px; }
+.tl-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 1rem 1.25rem;
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: all 0.18s;
+}
+.tl-item:hover {
+  border-color: var(--border2);
+  transform: translateX(4px);
+  background: var(--surface2);
+}
+.tl-dot {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(124,111,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 16px;
+}
+.tl-label { font-size: 14px; font-weight: 500; }
+.tl-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tl-amount { margin-left: auto; font-size: 14px; font-weight: 600; color: var(--accent); }
+
+/* ── Analytics section ── */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 1.75rem;
+}
+.mini-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 1.25rem;
+  cursor: pointer; transition: all 0.18s;
+}
+.mini-chart-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.mini-chart-title { font-size: 13px; font-weight: 600; margin-bottom: 1rem; }
+.mini-bars {
+  display: flex; align-items: flex-end;
+  gap: 5px; height: 80px;
+}
+.mini-bar {
+  flex: 1; border-radius: 4px 4px 0 0;
+  transition: opacity 0.15s;
+}
+.mini-bar:hover { opacity: 0.75; }
+
+/* ── Settings ── */
+.settings-grid { display: flex; flex-direction: column; gap: 14px; }
+.settings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 1.5rem;
+}
+.settings-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 1rem; }
+.setting-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.setting-row:last-child { border-bottom: none; padding-bottom: 0; }
+.setting-label { font-size: 13px; }
+.setting-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.toggle {
+  width: 40px; height: 22px; border-radius: 11px;
+  background: var(--surface3); cursor: pointer;
+  position: relative; border: none;
+  transition: background 0.2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: ''; position: absolute;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  border-radius: 50%; background: white;
+  transition: transform 0.2s;
+}
+.toggle.on::after { transform: translateX(18px); }
+
+/* ── AI Chat panel ── */
+.ai-panel {
+  position: fixed; right: 0; top: 0; bottom: 0;
+  width: 380px; background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.ai-panel.open { transform: translateX(0); }
+.ai-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.ai-avatar {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #5b4de8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.ai-header-info { flex: 1; }
+.ai-header-name { font-size: 14px; font-weight: 600; }
+.ai-header-status { font-size: 11px; color: var(--accent2); }
+.ai-close {
+  background: var(--surface2); border: 1px solid var(--border);
+  width: 30px; height: 30px; border-radius: 8px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 16px; transition: all 0.15s;
+}
+.ai-close:hover { color: var(--text); background: var(--surface3); }
+
+.ai-messages {
+  flex: 1; overflow-y: auto; padding: 1.25rem;
+  display: flex; flex-direction: column; gap: 12px;
+  scrollbar-width: thin;
+}
+.msg {
+  max-width: 85%; padding: 10px 14px;
+  border-radius: 12px; font-size: 13px; line-height: 1.5;
+  animation: msgIn 0.2s ease;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.msg.ai {
+  background: var(--surface2); border: 1px solid var(--border);
+  align-self: flex-start; border-radius: 4px 12px 12px 12px;
+}
+.msg.user {
+  background: rgba(124,111,255,0.2); border: 1px solid rgba(124,111,255,0.3);
+  align-self: flex-end; border-radius: 12px 4px 12px 12px;
+}
+.ai-typing {
+  display: flex; gap: 5px; padding: 12px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px 12px 12px 12px;
+  width: fit-content; align-self: flex-start;
+}
+.typing-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted); animation: typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%,80%,100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+.ai-input-row {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.ai-input {
+  flex: 1; background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; color: var(--text);
+  outline: none; transition: border-color 0.15s;
+  resize: none; min-height: 40px; max-height: 120px;
+}
+.ai-input:focus { border-color: var(--accent); }
+.ai-input::placeholder { color: var(--muted); }
+.ai-send {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--accent); border: none;
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.ai-send:hover { filter: brightness(1.15); transform: scale(1.05); }
+.ai-send svg { width: 16px; height: 16px; fill: white; }
+.ai-quick-prompts {
+  padding: 0 1.25rem 0.75rem;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.quick-btn {
+  font-size: 11px; padding: 5px 10px;
+  border-radius: 20px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted);
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+}
+.quick-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,111,255,0.1); }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+  z-index: 200; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 2rem;
+  min-width: 460px; max-width: 560px; width: 90%;
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+  max-height: 85vh; overflow-y: auto;
+}
+.modal-overlay.open .modal { transform: scale(1) translateY(0); }
+.modal-close {
+  position: absolute; top: 1.25rem; right: 1.25rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  width: 30px; height: 30px; border-radius: 8px;
+  cursor: pointer; font-size: 16px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.modal-close:hover { color: var(--text); }
+.modal-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px; font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.4rem;
+}
+.modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; }
+
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+.modal-stat {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1rem;
+}
+.modal-stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.modal-stat-value { font-size: 22px; font-weight: 600; margin-top: 4px; }
+.modal-stat-change { font-size: 12px; margin-top: 3px; }
+
+.modal-section-title { font-size: 13px; font-weight: 600; margin: 1.25rem 0 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.modal-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.modal-item:last-child { border-bottom: none; }
+.modal-item-val { font-weight: 600; }
+.progress-bar-outer {
+  height: 6px; background: var(--surface2);
+  border-radius: 3px; overflow: hidden;
+  margin-top: 6px;
+}
+.progress-bar-inner {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 0.6s ease;
+}
+
+/* Notifications badge */
+.notif-badge {
+  background: var(--accent3);
+  color: white; font-size: 10px; font-weight: 700;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-left: auto;
+}
+
+/* Table filter pills */
+.filter-pills { display: flex; gap: 6px; padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--border); }
+.pill {
+  font-size: 12px; padding: 4px 12px; border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--muted);
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+}
+.pill.active { background: rgba(124,111,255,0.15); border-color: var(--accent); color: var(--accent); }
+.pill:hover:not(.active) { border-color: var(--border2); color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+    </div>
+    <span class="brand-name">BizOS</span>
+  </div>
+
+  <div class="nav-section-label">Main</div>
+
+  <button class="nav-btn active" id="btn-dash" onclick="show('dash','btn-dash')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+    Dashboard
+  </button>
+
+  <button class="nav-btn" id="btn-orders" onclick="show('orders','btn-orders')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14l4-4h12c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+    Orders
+    <span class="notif-badge">5</span>
+  </button>
+
+  <button class="nav-btn" id="btn-history" onclick="show('history','btn-history')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 1 1 2.05 4.95L6.63 18.37A9 9 0 1 0 13 3z"/></svg>
+    History
+  </button>
+<!-- 
+  <button class="nav-btn" id="btn-analytics" onclick="show('analytics','btn-analytics')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
+    Analytics
+  </button>
+
+  <div class="nav-section-label">Account</div>
+
+  <button class="nav-btn" id="btn-settings" onclick="show('settings','btn-settings')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    Settings
+  </button> -->
+
+  <div class="sidebar-spacer"></div>
+
+  <button class="nav-btn cta" onclick="openAI()">
+    <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
+    Business AI
+  </button>
+</aside>
+
+<!-- Main content -->
+<main class="main" id="main-content">
+
+  <!-- Dashboard -->
+  <div id="dash" class="section active">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Overview</div>
+        <div class="page-sub">Your business at a glance · April 2026</div>
+      </div>
+      <span class="badge">Live</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card profit" onclick="openModal('profit')">
+        <span class="click-hint">Tap to expand ↗</span>
+        <div class="stat-label">Total Profit</div>
+        <div class="stat-value">₹4.2L</div>
+        <div class="stat-change up">↑ 12.4% this month</div>
+      </div>
+      <div class="stat-card orders" onclick="openModal('orders')">
+        <span class="click-hint">Tap to expand ↗</span>
+        <div class="stat-label">Orders</div>
+        <div class="stat-value">1,284</div>
+        <div class="stat-change up">↑ 8.1% this week</div>
+      </div>
+      <div class="stat-card returns" onclick="openModal('returns')">
+        <span class="click-hint">Tap to expand ↗</span>
+        <div class="stat-label">Returns</div>
+        <div class="stat-value">37</div>
+        <div class="stat-change down">↑ 3.2% vs last week</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Monthly Profit</div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="switchChart(this,'profit')">Profit</button>
+          <button class="chart-tab" onclick="switchChart(this,'orders')">Orders</button>
+          <button class="chart-tab" onclick="switchChart(this,'returns')">Returns</button>
+        </div>
+      </div>
+      <div class="chart-bars" id="main-chart">
+        <!-- bars inserted by JS -->
+      </div>
+    </div>
+
+    <!-- Quick recent orders preview -->
+    <div class="table-card">
+      <div class="table-head">
+        Recent Orders
+        <button onclick="show('orders','btn-orders')" style="font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">View all →</button>
+      </div>
+      <table id="recent-table">
+        <thead>
+          <tr>
+            <th>Order ID</th><th>Customer</th><th>Amount</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="recent-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Orders -->
+  <div id="orders" class="section">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Orders</div>
+        <div class="page-sub">All order activity — tap any row for details</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head">
+        All Orders
+        <input class="search-box" type="text" placeholder="🔍  Search orders…" oninput="filterOrders(this.value)" />
+      </div>
+      <div class="filter-pills">
+        <button class="pill active" onclick="filterStatus(this,'all')">All</button>
+        <button class="pill" onclick="filterStatus(this,'delivered')">Delivered</button>
+        <button class="pill" onclick="filterStatus(this,'pending')">Pending</button>
+        <button class="pill" onclick="filterStatus(this,'cancelled')">Cancelled</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Order ID <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(1)">Customer <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(2)">Amount <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(3)">Date <span class="sort-icon">⇅</span></th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="orders-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div id="history" class="section">
+    <div class="page-header">
+      <div>
+        <div class="page-title">History</div>
+        <div class="page-sub">Previous predictions & activity — tap any event</div>
+      </div>
+    </div>
+    <div class="timeline" id="history-list"></div>
+  </div>
+
+  <!-- Analytics -->
+  <div id="analytics" class="section">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Analytics</div>
+        <div class="page-sub">Deep-dive metrics</div>
+      </div>
+    </div>
+    <div class="analytics-grid">
+      <div class="mini-chart-card" onclick="openModal('topProducts')">
+        <div class="mini-chart-title">Top Products</div>
+        <div class="mini-bars" id="top-products-chart"></div>
+      </div>
+      <div class="mini-chart-card" onclick="openModal('customers')">
+        <div class="mini-chart-title">Customer Segments</div>
+        <div class="mini-bars" id="customers-chart"></div>
+      </div>
+      <div class="mini-chart-card" onclick="openModal('geography')">
+        <div class="mini-chart-title">Top Cities</div>
+        <div class="mini-bars" id="geo-chart"></div>
+      </div>
+      <div class="mini-chart-card" onclick="openModal('weeklyTrend')">
+        <div class="mini-chart-title">Weekly Trend</div>
+        <div class="mini-bars" id="weekly-chart"></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Revenue vs Expenses</div>
+      </div>
+      <div class="chart-bars" id="rev-exp-chart"></div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings" class="section">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Manage your preferences</div>
+      </div>
+    </div>
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h3>Notifications</h3>
+        <div class="setting-row">
+          <div><div class="setting-label">Order alerts</div><div class="setting-sub">Get notified for every new order</div></div>
+          <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Return alerts</div><div class="setting-sub">Alert when return rate exceeds 5%</div></div>
+          <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Weekly digest</div><div class="setting-sub">Summary email every Monday</div></div>
+          <button class="toggle" onclick="this.classList.toggle('on')"></button>
+        </div>
+      </div>
+      <div class="settings-card">
+        <h3>Display</h3>
+        <div class="setting-row">
+          <div><div class="setting-label">Compact tables</div><div class="setting-sub">Reduce row height in tables</div></div>
+          <button class="toggle" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Animated charts</div><div class="setting-sub">Enable bar & line animations</div></div>
+          <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Show INR symbol</div><div class="setting-sub">Display ₹ in all monetary fields</div></div>
+          <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+        </div>
+      </div>
+      <div class="settings-card">
+        <h3>Business Profile</h3>
+        <div class="setting-row">
+          <div class="setting-label">Business Name</div>
+          <div style="font-size:13px;font-weight:600;color:var(--accent)">BizOS Demo</div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Currency</div>
+          <div style="font-size:13px;font-weight:600">INR (₹)</div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Timezone</div>
+          <div style="font-size:13px;font-weight:600">IST (UTC+5:30)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- AI Panel -->
+<div class="ai-panel" id="ai-panel">
+  <div class="ai-header">
+    <div class="ai-avatar">🤖</div>
+    <div class="ai-header-info">
+      <div class="ai-header-name">Business AI</div>
+      <div class="ai-header-status">● Online</div>
+    </div>
+    <button class="ai-close" onclick="closeAI()">✕</button>
+  </div>
+  <div class="ai-messages" id="ai-messages">
+    <div class="msg ai">👋 Hi! I'm your Business AI. Ask me anything about your profits, orders, returns, or trends.</div>
+  </div>
+  <div class="ai-quick-prompts" id="quick-prompts">
+    <button class="quick-btn" onclick="sendQuick(this)">📈 Profit summary</button>
+    <button class="quick-btn" onclick="sendQuick(this)">🛒 Order trends</button>
+    <button class="quick-btn" onclick="sendQuick(this)">⚠️ High returns</button>
+    <button class="quick-btn" onclick="sendQuick(this)">📦 Top products</button>
+    <button class="quick-btn" onclick="sendQuick(this)">💡 Recommendations</button>
+  </div>
+  <div class="ai-input-row">
+    <textarea class="ai-input" id="ai-input" placeholder="Ask about your business…" rows="1" onkeydown="handleAIKey(event)"></textarea>
+    <button class="ai-send" onclick="sendAI()">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalIfBackground(event)">
+  <div class="modal" id="modal-content">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────
+const ORDERS = [
+  { id:'#ORD-1041', customer:'Rahul Sharma',  amount:3200,  date:'Apr 12, 2026', status:'delivered', city:'Delhi',   product:'Laptop Bag' },
+  { id:'#ORD-1040', customer:'Priya Mehta',   amount:1850,  date:'Apr 11, 2026', status:'pending',   city:'Mumbai',  product:'Wireless Mouse' },
+  { id:'#ORD-1039', customer:'Amir Khan',     amount:5600,  date:'Apr 10, 2026', status:'delivered', city:'Pune',    product:'Office Chair' },
+  { id:'#ORD-1038', customer:'Sneha Patel',   amount:980,   date:'Apr 09, 2026', status:'cancelled', city:'Surat',   product:'Desk Lamp' },
+  { id:'#ORD-1037', customer:'Dev Rao',       amount:2450,  date:'Apr 08, 2026', status:'delivered', city:'Chennai', product:'Keyboard' },
+  { id:'#ORD-1036', customer:'Kiran Nair',    amount:3750,  date:'Apr 07, 2026', status:'delivered', city:'Hyderabad',product:'Monitor Stand' },
+  { id:'#ORD-1035', customer:'Neha Gupta',    amount:1120,  date:'Apr 06, 2026', status:'pending',   city:'Kolkata', product:'USB Hub' },
+  { id:'#ORD-1034', customer:'Arjun Verma',   amount:6800,  date:'Apr 05, 2026', status:'delivered', city:'Delhi',   product:'Mechanical Keyboard' },
+  { id:'#ORD-1033', customer:'Pooja Singh',   amount:2200,  date:'Apr 04, 2026', status:'cancelled', city:'Jaipur',  product:'Desk Organizer' },
+  { id:'#ORD-1032', customer:'Sameer Ali',    amount:4100,  date:'Apr 03, 2026', status:'delivered', city:'Mumbai',  product:'Webcam' },
+];
+
+const CHART_DATA = {
+  profit:  [55,70,45,80,60,90,75,65],
+  orders:  [40,65,55,72,68,88,71,60],
+  returns: [20,15,30,10,25,8,18,22],
+  labels:  ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
+  values: {
+    profit:  ['₹2.1L','₹2.6L','₹1.7L','₹3.0L','₹2.3L','₹3.4L','₹2.8L','₹2.5L'],
+    orders:  ['920','1050','830','1120','1060','1380','1240','1100'],
+    returns: ['24','18','36','12','30','9','21','26'],
+  }
+};
+
+const HISTORY = [
+  { icon:'📈', label:'Q1 Profit Prediction', date:'March 31, 2026', amount:'₹4.8L', detail:'AI predicted ₹4.8L for Q1 based on seasonality and order growth trends. Actual came in at ₹4.2L (87.5% accuracy).' },
+  { icon:'🛒', label:'Peak Season Order Surge', date:'February 14, 2026', amount:'+340 orders', detail:'Valentine\'s Day drove a 36% surge in orders. Top products: Gift sets, Desk accessories, Lifestyle items.' },
+  { icon:'🤖', label:'AI Model Retrained', date:'January 10, 2026', amount:'v2.1', detail:'Model v2.1 trained on 6 months of new data. Prediction accuracy improved from 79% to 91% on return forecasts.' },
+  { icon:'📦', label:'Inventory Optimized', date:'December 28, 2025', amount:'-18% waste', detail:'SKU rationalization reduced dead stock by 18%. Freed up ₹62,000 in working capital. 14 low-velocity SKUs removed.' },
+];
+
+const AI_RESPONSES = {
+  'profit summary': '📊 Your total profit this month is **₹4.2L**, up 12.4% from last month. Best month was June at ₹3.4L. YTD profit is approx ₹22.4L.',
+  'order trends': '🛒 Orders are at **1,284** this week — up 8.1%. Your busiest day is typically Wednesday. April has seen strong growth vs March (+15%).',
+  'high returns': '⚠️ You have **37 returns** this week, up 3.2%. Top return reason: Size mismatch (42%), Product quality (28%). Recommend reviewing Desk Lamp SKU.',
+  'top products': '📦 Top sellers: **Mechanical Keyboard** (₹6,800), **Office Chair** (₹5,600), **Webcam** (₹4,100). These 3 drive 38% of revenue.',
+  'recommendations': '💡 3 quick wins:\n1. Bundle Keyboard + Mouse — avg order value up ₹800\n2. Follow up on 2 pending orders (₹2,970 at risk)\n3. Restock Webcam — trending up 22%',
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────
+let currentFilter = 'all';
+let currentChartType = 'profit';
+
+window.onload = () => {
+  renderMainChart('profit');
+  renderRecentTable();
+  renderOrdersTable(ORDERS);
+  renderHistory();
+  renderAnalytics();
+};
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function show(id, btnId) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById(btnId).classList.add('active');
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────
+function renderMainChart(type) {
+  const container = document.getElementById('main-chart');
+  const data = CHART_DATA[type];
+  const labels = CHART_DATA.labels;
+  const values = CHART_DATA.values[type];
+  container.innerHTML = data.map((h, i) => `
+    <div class="bar-wrap">
+      <div class="bar-tooltip">${values[i]}</div>
+      <div class="bar" style="height:${h}%"></div>
+      <div class="bar-label">${labels[i]}</div>
+    </div>
+  `).join('');
+}
+
+function switchChart(btn, type) {
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  currentChartType = type;
+  renderMainChart(type);
+}
+
+function renderMiniChart(containerId, data, color) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const max = Math.max(...data);
+  container.innerHTML = data.map((v, i) => `
+    <div class="mini-bar" style="height:${(v/max)*100}%;background:${color};border-radius:4px 4px 0 0;flex:1;"></div>
+  `).join('');
+}
+
+function renderAnalytics() {
+  renderMiniChart('top-products-chart', [88,72,65,54,41,38], 'linear-gradient(180deg,#7c6fff,rgba(124,111,255,0.3))');
+  renderMiniChart('customers-chart',    [60,40,25,15],        'linear-gradient(180deg,#4ff8c8,rgba(79,248,200,0.3))');
+  renderMiniChart('geo-chart',          [80,65,52,43,35,28],  'linear-gradient(180deg,#ffc600,rgba(255,198,0,0.3))');
+  renderMiniChart('weekly-chart',       [45,62,55,70,80,68,74], 'linear-gradient(180deg,#ff6b8a,rgba(255,107,138,0.3))');
+
+  // Rev vs Exp
+  const container = document.getElementById('rev-exp-chart');
+  const revData  = [70,82,60,90,75,95,85,78];
+  const expData  = [45,55,40,60,50,65,55,52];
+  const labels   = CHART_DATA.labels;
+  container.innerHTML = revData.map((r,i) => `
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end;">
+      <div style="width:100%;display:flex;gap:2px;align-items:flex-end;height:100%;justify-content:center;">
+        <div style="flex:1;height:${r}%;background:linear-gradient(180deg,#7c6fff,rgba(124,111,255,0.3));border-radius:4px 4px 0 0;"></div>
+        <div style="flex:1;height:${expData[i]}%;background:linear-gradient(180deg,#ff6b8a,rgba(255,107,138,0.3));border-radius:4px 4px 0 0;"></div>
+      </div>
+      <div class="bar-label">${labels[i]}</div>
+    </div>
+  `).join('');
+}
+
+// ── Tables ────────────────────────────────────────────────────────────────
+function renderRecentTable() {
+  const tbody = document.getElementById('recent-tbody');
+  tbody.innerHTML = ORDERS.slice(0,4).map(o => `
+    <tr onclick="openModal('order',${JSON.stringify(o).replace(/"/g,'&quot;')})">
+      <td>${o.id}</td>
+      <td>${o.customer}</td>
+      <td>₹${o.amount.toLocaleString()}</td>
+      <td><span class="status ${o.status}">${o.status.charAt(0).toUpperCase()+o.status.slice(1)}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderOrdersTable(data) {
+  const tbody = document.getElementById('orders-tbody');
+  tbody.innerHTML = data.map(o => `
+    <tr onclick="openModal('order',${JSON.stringify(o).replace(/"/g,'&quot;')})">
+      <td>${o.id}</td>
+      <td>${o.customer}</td>
+      <td>₹${o.amount.toLocaleString()}</td>
+      <td>${o.date}</td>
+      <td><span class="status ${o.status}">${o.status.charAt(0).toUpperCase()+o.status.slice(1)}</span></td>
+    </tr>
+  `).join('');
+}
+
+function filterOrders(q) {
+  const filtered = ORDERS.filter(o =>
+    o.id.toLowerCase().includes(q.toLowerCase()) ||
+    o.customer.toLowerCase().includes(q.toLowerCase()) ||
+    o.product.toLowerCase().includes(q.toLowerCase())
+  );
+  const statusFiltered = currentFilter === 'all' ? filtered : filtered.filter(o => o.status === currentFilter);
+  renderOrdersTable(statusFiltered);
+}
+
+function filterStatus(btn, status) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = status;
+  const data = status === 'all' ? ORDERS : ORDERS.filter(o => o.status === status);
+  renderOrdersTable(data);
+}
+
+function sortTable(col) {
+  const keys = ['id','customer','amount','date'];
+  const key = keys[col];
+  const sorted = [...ORDERS].sort((a,b) => {
+    if (key === 'amount') return b.amount - a.amount;
+    return String(a[key]).localeCompare(String(b[key]));
+  });
+  renderOrdersTable(sorted);
+}
+
+// ── History ───────────────────────────────────────────────────────────────
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = HISTORY.map((h,i) => `
+    <div class="tl-item" onclick="openModal('history',${JSON.stringify(h).replace(/"/g,'&quot;')})">
+      <div class="tl-dot">${h.icon}</div>
+      <div>
+        <div class="tl-label">${h.label}</div>
+        <div class="tl-date">${h.date}</div>
+      </div>
+      <div class="tl-amount">${h.amount}</div>
+    </div>
+  `).join('');
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────
+function openModal(type, data) {
+  const body = document.getElementById('modal-body');
+  let html = '';
+
+  if (type === 'profit') {
+    html = `
+      <div class="modal-title">💰 Profit Details</div>
+      <div class="modal-sub">Month-over-month breakdown</div>
+      <div class="modal-grid">
+        <div class="modal-stat"><div class="modal-stat-label">This Month</div><div class="modal-stat-value">₹4.2L</div><div class="modal-stat-change up">↑ 12.4%</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Last Month</div><div class="modal-stat-value">₹3.7L</div><div class="modal-stat-change" style="color:var(--muted)">Baseline</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">YTD Profit</div><div class="modal-stat-value">₹22.4L</div><div class="modal-stat-change up">↑ 9.1% YoY</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Best Month</div><div class="modal-stat-value">₹3.4L</div><div class="modal-stat-change" style="color:var(--muted)">June 2025</div></div>
+      </div>
+      <div class="modal-section-title">Profit by Category</div>
+      ${[['Electronics','₹1.8L',43],['Furniture','₹1.1L',26],['Accessories','₹0.9L',21],['Other','₹0.4L',10]]
+        .map(([c,v,p]) => `<div class="modal-item"><span>${c}</span><span class="modal-item-val">${v}</span></div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${p}%"></div></div>`).join('')}
+    `;
+  } else if (type === 'orders') {
+    const delivered = ORDERS.filter(o=>o.status==='delivered').length;
+    const pending   = ORDERS.filter(o=>o.status==='pending').length;
+    const cancelled = ORDERS.filter(o=>o.status==='cancelled').length;
+    html = `
+      <div class="modal-title">🛒 Orders Breakdown</div>
+      <div class="modal-sub">Current period statistics</div>
+      <div class="modal-grid">
+        <div class="modal-stat"><div class="modal-stat-label">Total</div><div class="modal-stat-value">1,284</div><div class="modal-stat-change up">↑ 8.1%</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Avg Value</div><div class="modal-stat-value">₹2,890</div><div class="modal-stat-change up">↑ 4.2%</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Delivered</div><div class="modal-stat-value" style="color:var(--accent2)">${delivered}/10</div><div class="modal-stat-change" style="color:var(--accent2)">Last 10 shown</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Pending</div><div class="modal-stat-value" style="color:var(--accent4)">${pending}/10</div><div class="modal-stat-change" style="color:var(--accent4)">Need follow-up</div></div>
+      </div>
+      <div class="modal-section-title">Status Distribution</div>
+      ${[['Delivered',delivered*10,'var(--accent2)'],['Pending',pending*10,'var(--accent4)'],['Cancelled',cancelled*10,'var(--accent3)']]
+        .map(([s,p,c]) => `<div class="modal-item"><span>${s}</span><span class="modal-item-val" style="color:${c}">${Math.round(p/10)} orders</span></div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${p}%;background:${c}"></div></div>`).join('')}
+    `;
+  } else if (type === 'returns') {
+    html = `
+      <div class="modal-title">📦 Returns Analysis</div>
+      <div class="modal-sub">Why customers are returning</div>
+      <div class="modal-grid">
+        <div class="modal-stat"><div class="modal-stat-label">This Week</div><div class="modal-stat-value">37</div><div class="modal-stat-change down">↑ 3.2%</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Return Rate</div><div class="modal-stat-value">2.9%</div><div class="modal-stat-change" style="color:var(--muted)">Industry avg 4%</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Value at Risk</div><div class="modal-stat-value">₹54K</div><div class="modal-stat-change down">↑ ₹8K</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Resolved</div><div class="modal-stat-value">29</div><div class="modal-stat-change up">78.4%</div></div>
+      </div>
+      <div class="modal-section-title">Return Reasons</div>
+      ${[['Size / Fit mismatch',42,'var(--accent3)'],['Product quality',28,'var(--accent4)'],['Wrong item sent',18,'var(--accent)'],['Changed mind',12,'var(--muted)']]
+        .map(([r,p,c]) => `<div class="modal-item"><span>${r}</span><span class="modal-item-val" style="color:${c}">${p}%</span></div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${p}%;background:${c}"></div></div>`).join('')}
+    `;
+  } else if (type === 'order' && data) {
+    const o = typeof data === 'string' ? JSON.parse(data) : data;
+    html = `
+      <div class="modal-title">${o.id}</div>
+      <div class="modal-sub">${o.date} · ${o.city}</div>
+      <div class="modal-grid">
+        <div class="modal-stat"><div class="modal-stat-label">Amount</div><div class="modal-stat-value">₹${o.amount.toLocaleString()}</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Status</div><div class="modal-stat-value"><span class="status ${o.status}">${o.status.charAt(0).toUpperCase()+o.status.slice(1)}</span></div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Customer</div><div class="modal-stat-value" style="font-size:18px">${o.customer}</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Product</div><div class="modal-stat-value" style="font-size:16px">${o.product}</div></div>
+      </div>
+      <div class="modal-section-title">Order Timeline</div>
+      ${o.status==='delivered'?
+        [['Order placed','✅',o.date],['Payment confirmed','✅',o.date],['Dispatched','✅','Next day'],['Delivered','✅','3 days later']]
+        .map(([l,ic,d])=>`<div class="modal-item"><span>${ic} ${l}</span><span class="modal-item-val" style="color:var(--muted);font-weight:400">${d}</span></div>`).join('')
+      :o.status==='pending'?
+        [['Order placed','✅',o.date],['Payment confirmed','✅',o.date],['Dispatched','⏳','Pending'],['Delivered','⏳','Pending']]
+        .map(([l,ic,d])=>`<div class="modal-item"><span>${ic} ${l}</span><span class="modal-item-val" style="color:var(--muted);font-weight:400">${d}</span></div>`).join('')
+      :
+        [['Order placed','✅',o.date],['Cancelled','❌','Same day'],['Refund initiated','🔄','Processing']]
+        .map(([l,ic,d])=>`<div class="modal-item"><span>${ic} ${l}</span><span class="modal-item-val" style="color:var(--muted);font-weight:400">${d}</span></div>`).join('')
+      }
+    `;
+  } else if (type === 'history' && data) {
+    const h = typeof data === 'string' ? JSON.parse(data) : data;
+    html = `
+      <div style="font-size:40px;margin-bottom:1rem">${h.icon}</div>
+      <div class="modal-title">${h.label}</div>
+      <div class="modal-sub">${h.date}</div>
+      <div class="modal-stat" style="margin:1.25rem 0">
+        <div class="modal-stat-label">Result</div>
+        <div class="modal-stat-value">${h.amount}</div>
+      </div>
+      <div style="font-size:13px;line-height:1.7;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-top:1rem">${h.detail}</div>
+    `;
+  } else if (type === 'topProducts') {
+    html = `
+      <div class="modal-title">📦 Top Products</div>
+      <div class="modal-sub">By revenue contribution</div>
+      ${[['Mechanical Keyboard','₹6,800',88],['Office Chair','₹5,600',72],['Webcam','₹4,100',65],['Monitor Stand','₹3,750',54],['Laptop Bag','₹3,200',41],['Wireless Mouse','₹1,850',38]]
+        .map(([p,v,s])=>`<div class="modal-item"><span>${p}</span><span class="modal-item-val">${v}</span></div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${s}%"></div></div>`).join('')}
+    `;
+  } else if (type === 'customers') {
+    html = `
+      <div class="modal-title">👥 Customer Segments</div>
+      <div class="modal-sub">Who's buying from you</div>
+      ${[['Repeat customers','60%',60,'var(--accent2)'],['New customers','25%',25,'var(--accent)'],['Referred','10%',10,'var(--accent4)'],['Other','5%',5,'var(--muted)']]
+        .map(([s,p,w,c])=>`<div class="modal-item"><span>${s}</span><span class="modal-item-val" style="color:${c}">${p}</span></div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${w}%;background:${c}"></div></div>`).join('')}
+    `;
+  } else if (type === 'geography') {
+    html = `
+      <div class="modal-title">🗺️ Top Cities</div>
+      <div class="modal-sub">Orders by location</div>
+      ${[['Delhi','320 orders',80],['Mumbai','260 orders',65],['Hyderabad','210 orders',52],['Pune','170 orders',43],['Chennai','140 orders',35],['Kolkata','115 orders',28]]
+        .map(([c,o,p])=>`<div class="modal-item"><span>${c}</span><span class="modal-item-val">${o}</span></div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${p}%"></div></div>`).join('')}
+    `;
+  } else if (type === 'weeklyTrend') {
+    html = `
+      <div class="modal-title">📅 Weekly Trend</div>
+      <div class="modal-sub">Orders per day this week</div>
+      ${[['Monday',45,45],['Tuesday',62,62],['Wednesday',55,55],['Thursday',70,70],['Friday',80,80],['Saturday',68,68],['Sunday',74,74]]
+        .map(([d,v,p])=>`<div class="modal-item"><span>${d}</span><span class="modal-item-val">${v} orders</span></div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${p}%"></div></div>`).join('')}
+    `;
+  }
+
+  body.innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function closeModalIfBackground(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+// ── AI Panel ──────────────────────────────────────────────────────────────
+function openAI() {
+  document.getElementById('ai-panel').classList.add('open');
+  document.getElementById('main-content').style.marginRight = '380px';
+}
+
+function closeAI() {
+  document.getElementById('ai-panel').classList.remove('open');
+  document.getElementById('main-content').style.marginRight = '0';
+}
+
+function sendAI() {
+  const input = document.getElementById('ai-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  addMsg(msg, 'user');
+  input.value = '';
+  showTyping();
+  setTimeout(() => {
+    removeTyping();
+    const key = Object.keys(AI_RESPONSES).find(k => msg.toLowerCase().includes(k.replace('📈','').replace('🛒','').replace('⚠️','').replace('📦','').replace('💡','').trim().toLowerCase()));
+    const resp = key ? AI_RESPONSES[key] : `Thanks for asking about "${msg}". Based on your current data: profit is up 12.4%, orders are growing, and your return rate (2.9%) is below industry average. Would you like a deeper breakdown?`;
+    addMsg(resp, 'ai');
+  }, 1200);
+}
+
+function sendQuick(btn) {
+  const text = btn.textContent.replace(/^[^\s]+\s/,'').toLowerCase();
+  document.getElementById('ai-input').value = btn.textContent;
+  sendAI();
+}
+
+function addMsg(text, role) {
+  const msgs = document.getElementById('ai-messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('ai-messages');
+  const div = document.createElement('div');
+  div.className = 'ai-typing';
+  div.id = 'typing-indicator';
+  div.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+function handleAIKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendAI();
+  }
+}
+
+// ── Keyboard shortcut ─────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeAI(); }
+});
+</script>
+</body>
+</html> 

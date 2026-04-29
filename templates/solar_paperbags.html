@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gross Margin Prediction — SolarBag</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d14;
+  --surface: #14141f;
+  --surface2: #1c1c2e;
+  --surface3: #22223a;
+  --border: rgba(255,255,255,0.07);
+  --accent: #7c6fff;
+  --accent2: #4ff8c8;
+  --warn: #ffc600;
+  --danger: #ff6b8a;
+  --text: #f0eeff;
+  --muted: #7b7a96;
+  --card-radius: 16px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 900px;
+  margin: 0 auto 2rem;
+  padding: 0 0.25rem;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+
+.icon-wrap {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: rgba(124,111,255,0.15);
+  border: 1px solid rgba(124,111,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.icon-wrap svg { width: 22px; height: 22px; fill: var(--accent); }
+
+.topbar-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.topbar-sub { font-size: 12px; color: var(--muted); }
+
+/* CSV Predict button (top right) */
+.btn-csv-predict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #4ff8c8, #1bc9a0);
+  color: #0a1a15;
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: filter 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn-csv-predict:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-csv-predict svg { width: 16px; height: 16px; fill: #0a1a15; flex-shrink: 0; }
+
+/* ── MAIN LAYOUT ── */
+.main-wrap {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.25rem;
+  max-width: 900px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 1.75rem;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+/* Toggle */
+.toggle {
+  display: flex; background: var(--surface2); border-radius: 10px;
+  padding: 4px; margin-bottom: 1.5rem; gap: 4px;
+}
+.toggle-btn {
+  flex: 1; padding: 9px; border: none; border-radius: 8px;
+  background: transparent; color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.toggle-btn svg { width: 15px; height: 15px; }
+.toggle-btn:hover { color: var(--text); }
+.toggle-btn.active { background: var(--surface); color: var(--accent); border: 1px solid rgba(124,111,255,0.25); }
+
+/* Form sections */
+.form-section { display: none; animation: fadeUp 0.2s ease; }
+.form-section.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+
+label {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+.input-wrap { position: relative; }
+.input-wrap span {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; color: var(--muted); pointer-events: none;
+}
+
+input[type="number"], input[type="text"], select {
+  width: 100%;
+  padding: 10px 13px 10px 26px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+   -webkit-appearance: none;
+}
+input.no-prefix, select.no-prefix { padding-left: 13px; }
+input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,111,255,0.12); }
+input::placeholder { color: #3e3d5a; }
+select option { background: var(--surface2); }
+
+.btn-predict {
+  width: 100%; padding: 12px; margin-top: 4px;
+  background: linear-gradient(135deg, var(--accent), #5b4de8);
+  color: white; border: none; border-radius: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; letter-spacing: 0.02em;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: filter 0.15s, transform 0.1s;
+}
+.btn-predict:hover { filter: brightness(1.1); }
+.btn-predict:active { transform: scale(0.98); }
+.btn-predict svg { width: 16px; height: 16px; fill: white; }
+
+/* Result */
+.result-box {
+  display: none; margin-top: 1.25rem;
+  background: var(--surface2); border: 1px solid rgba(79,248,200,0.2);
+  border-radius: 12px; padding: 1.25rem 1.5rem;
+  animation: fadeUp 0.25s ease;
+}
+.result-box.show { display: block; }
+.result-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.result-value { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; color: var(--accent2); letter-spacing: -0.02em; }
+.result-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.result-breakdown { margin-top: 0.75rem; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rb-item { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 8px 10px; }
+.rb-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.rb-val { font-size: 14px; font-weight: 600; margin-top: 2px; }
+
+/* Error */
+.error-box {
+  display: none; margin-top: 1rem;
+  background: rgba(255,107,138,0.08); border: 1px solid rgba(255,107,138,0.25);
+  border-radius: 10px; padding: 0.85rem 1.1rem;
+  font-size: 13px; color: var(--danger);
+}
+.error-box.show { display: block; }
+
+/* Spinner */
+.spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── EXCEL TRACKER PANEL (right side) ── */
+.excel-panel .card { height: 100%; }
+.excel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.excel-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.btn-export {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  background: rgba(79,248,200,0.1); border: 1px solid rgba(79,248,200,0.25);
+  border-radius: 8px; color: var(--accent2);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-export:hover { background: rgba(79,248,200,0.18); }
+.btn-export svg { width: 13px; height: 13px; fill: var(--accent2); }
+
+.entries-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+.entries-list::-webkit-scrollbar { width: 4px; }
+.entries-list::-webkit-scrollbar-track { background: transparent; }
+.entries-list::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+.entry-item {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  animation: fadeUp 0.2s ease;
+}
+.entry-left { flex: 1; min-width: 0; }
+.entry-type {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 2px;
+}
+.entry-type.solar { color: var(--warn); }
+.entry-type.paper { color: var(--accent2); }
+.entry-details { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entry-margin {
+  font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+  flex-shrink: 0;
+}
+.entry-margin.high { color: var(--accent2); }
+.entry-margin.mid { color: var(--warn); }
+.entry-margin.low { color: var(--danger); }
+
+.entry-delete {
+  background: transparent; border: none; color: var(--muted);
+  cursor: pointer; font-size: 14px; padding: 2px 5px;
+  border-radius: 4px; transition: color 0.15s, background 0.15s; flex-shrink: 0;
+}
+.entry-delete:hover { color: var(--danger); background: rgba(255,107,138,0.1); }
+
+.empty-state { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 13px; }
+.empty-state .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.4; }
+
+.entries-count {
+  font-size: 11px; color: var(--muted); margin-bottom: 0.75rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.entries-count span { color: var(--accent); font-weight: 600; }
+
+/* ── CSV UPLOAD MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+  z-index: 999; align-items: center; justify-content: center; padding: 1.5rem;
+}
+.modal-overlay.open { display: flex; animation: fadeUp 0.2s ease; }
+
+.modal-box {
+  background: var(--surface); border: 1px solid rgba(124,111,255,0.3);
+  border-radius: 20px; width: 100%; max-width: 600px;
+  max-height: 88vh; overflow-y: auto; padding: 2rem;
+  position: relative;
+}
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); width: 30px; height: 30px; border-radius: 50%;
+  cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.modal-close:hover { color: var(--text); background: var(--surface3); }
+
+.modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 1.5rem; }
+
+/* CSV Toggle */
+.csv-toggle { display: flex; background: var(--surface2); border-radius: 10px; padding: 4px; margin-bottom: 1.25rem; gap: 4px; }
+.csv-toggle-btn { flex: 1; padding: 8px; border: none; border-radius: 7px; background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.csv-toggle-btn.active { background: var(--surface); color: var(--accent); border: 1px solid rgba(124,111,255,0.25); }
+
+.drop-zone {
+  border: 2px dashed rgba(124,111,255,0.3); border-radius: 12px;
+  padding: 2rem; text-align: center; cursor: pointer;
+  transition: all 0.2s; margin-bottom: 1rem;
+  background: rgba(124,111,255,0.03);
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(124,111,255,0.08); }
+.drop-zone-icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.6; }
+.drop-zone p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.drop-zone strong { color: var(--accent); }
+.drop-zone input[type="file"] { display: none; }
+
+.csv-format-note {
+  background: var(--surface2); border-radius: 10px; padding: 1rem;
+  margin-bottom: 1rem; font-size: 12px; color: var(--muted); line-height: 1.6;
+}
+.csv-format-note strong { color: var(--text); display: block; margin-bottom: 0.4rem; }
+.csv-format-note code { color: var(--accent2); font-family: monospace; font-size: 11px; }
+
+/* CSV Results table */
+.csv-results { margin-top: 1rem; }
+.csv-results-title { font-size: 13px; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+.csv-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.margin-cell { font-weight: 700; }
+.margin-cell.high { color: var(--accent2); }
+.margin-cell.mid { color: var(--warn); }
+.margin-cell.low { color: var(--danger); }
+
+.btn-dl {
+  display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+  background: linear-gradient(135deg, var(--accent), #5b4de8);
+  color: white; border: none; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: filter 0.15s;
+}
+.btn-dl:hover { filter: brightness(1.1); }
+.btn-dl svg { width: 13px; height: 13px; fill: white; }
+
+.progress-bar { background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; margin: 0.75rem 0; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.3s ease; }
+
+@media (max-width: 720px) {
+  .main-wrap { grid-template-columns: 1fr; }
+  .topbar { flex-wrap: wrap; gap: 0.75rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+    </div>
+    <div>
+      <div class="topbar-title">Margin Predictor</div>
+      <div class="topbar-sub">AI-powered gross margin forecasting</div>
+    </div>
+  </div>
+  <!-- <button class="btn-csv-predict" onclick="openCsvModal()">
+    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5z"/></svg>
+    Bulk CSV Predict
+  </button> -->
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-wrap">
+
+  <!-- LEFT: Prediction Form -->
+  <div class="card">
+
+    <!-- Toggle -->
+    <div class="toggle">
+      <button class="toggle-btn active" id="btn-solar" onclick="switchType('solar')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7zm0-5a1 1 0 0 1 1 1v1a1 1 0 0 1-2 0V3a1 1 0 0 1 1-1zm0 18a1 1 0 0 1-1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1-1 1zM4.22 5.64a1 1 0 0 1 1.42-1.42l.7.71a1 1 0 0 1-1.41 1.41l-.71-.7zm13.14 12.72a1 1 0 0 1 1.42-1.42l.7.71a1 1 0 0 1-1.41 1.41l-.71-.7zM3 13h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm19 0h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zM5.64 19.78a1 1 0 0 1-1.41-1.41l.7-.71a1 1 0 0 1 1.42 1.42l-.71.7zm12.72-13.14a1 1 0 0 1-1.41-1.41l.7-.71a1 1 0 0 1 1.42 1.42l-.71.7z"/></svg>
+        Solar Business
+      </button>
+      <button class="toggle-btn" id="btn-paper" onclick="switchType('paper')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+        Paper Bags
+      </button>
+    </div>
+
+    <!-- Solar Form -->
+    <div class="form-section active" id="solar">
+      <div class="field-grid">
+        <div class="field">
+          <label>Requirement (kW)</label>
+          <div class="input-wrap">
+            <input type="number" id="s_size" placeholder="e.g. 10" class="no-prefix" oninput="autoSaveEntry('solar')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Plates Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="s_plates" placeholder="0" oninput="autoSaveEntry('solar')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Inverter Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="s_inverter" placeholder="0" oninput="autoSaveEntry('solar')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Install Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="s_install" placeholder="0" oninput="autoSaveEntry('solar')">
+          </div>
+        </div>
+        <!-- <div class="field">
+          <label>Labour Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="s_labour" placeholder="0" oninput="autoSaveEntry('solar')">
+          </div>
+        </div> -->
+        <div class="field">
+          <label>Selling Price (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="s_selling" placeholder="0" oninput="autoSaveEntry('solar')">
+          </div>
+        </div>
+      </div>
+      <button class="btn-predict" onclick="predictSolar()">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
+        <span id="solar-btn-text">Predict Margin</span>
+        <div class="spinner" id="solar-spinner"></div>
+      </button>
+    </div>
+
+    <!-- Paper Form -->
+    <div class="form-section" id="paper">
+      <div class="field-grid">
+        <div class="field">
+          <label>Quantity (units)</label>
+          <div class="input-wrap">
+            <input type="number" id="p_qty" placeholder="e.g. 500" class="no-prefix" oninput="autoSaveEntry('paper')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Selling Price (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="p_sell" placeholder="0" oninput="autoSaveEntry('paper')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Raw Material Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="p_raw" placeholder="0" oninput="autoSaveEntry('paper')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Labor Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="p_labor" placeholder="0" oninput="autoSaveEntry('paper')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Electricity Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="p_elec" placeholder="0" oninput="autoSaveEntry('paper')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Packaging Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="p_pack" placeholder="0" oninput="autoSaveEntry('paper')">
+          </div>
+        </div>
+      </div>
+      <button class="btn-predict" onclick="predictPaper()">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
+        <span id="paper-btn-text">Predict Margin</span>
+        <div class="spinner" id="paper-spinner"></div>
+      </button>
+    </div>
+
+<!-- Result -->
+<div class="result-box" id="result-box">
+  <div class="result-label">Predicted Gross Margin</div>
+  <div class="result-value" id="result-value">—%</div>
+  <div class="result-note" id="result-note"></div>
+
+  <!-- Charts -->
+  <div style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: 180px;">
+  <div style="height: 100%;">
+    <canvas id="marginPieChart"></canvas>
+  </div>
+  <div style="height: 100%;">
+    <canvas id="costBreakdownChart"></canvas>
+  </div>
+</div>
+
+  <div class="result-breakdown" id="result-breakdown" style="margin-top: 1rem;"></div>
+</div>
+
+    <!-- Error -->
+    <div class="error-box" id="error-box"></div>
+  </div>
+
+  <!-- RIGHT: Excel Tracker -->
+  <div class="excel-panel">
+    <div class="card">
+      <div class="excel-header">
+        <div class="excel-title">📋 Entry Tracker</div>
+        <button class="btn-export" onclick="exportToExcel()">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5z"/></svg>
+          Export Excel
+        </button>
+      </div>
+      <div class="entries-count">
+        <span id="entry-count">0 entries</span>
+        <button onclick="clearAll()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">Clear all</button>
+      </div>
+      <div class="entries-list" id="entries-list">
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <p>Fill the form and predict to add entries. Each prediction auto-saves here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CSV UPLOAD MODAL -->
+<div class="modal-overlay" id="csvModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeCsvModal()">✕</button>
+    <div class="modal-title">Bulk CSV Prediction</div>
+    <div class="modal-sub">Upload a CSV file to predict gross margin for multiple rows at once</div>
+
+    <div class="csv-toggle">
+      <button class="csv-toggle-btn active" id="csv-btn-solar" onclick="switchCsvType('solar')">☀️ Solar Business</button>
+      <button class="csv-toggle-btn" id="csv-btn-paper" onclick="switchCsvType('paper')">📄 Paper Bags</button>
+    </div>
+
+    <div class="csv-format-note" id="csv-format-note">
+      <strong>Required CSV Columns (Solar):</strong>
+      <code>requirement_kw, plates_cost, inverter_cost, install_cost, labour_cost, selling_price</code>
+    </div>
+
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('csvFileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+      <div class="drop-zone-icon">📂</div>
+      <p><strong>Click to browse</strong> or drag &amp; drop your CSV file here</p>
+      <p style="margin-top:6px;font-size:11px;">Supports .csv files · Max 5,000 rows</p>
+    </div>
+
+    <div class="progress-bar" id="csv-progress" style="display:none">
+      <div class="progress-fill" id="csv-progress-fill" style="width:0%"></div>
+    </div>
+
+    <div class="csv-results" id="csv-results" style="display:none">
+      <div class="csv-results-title">
+        <span id="csv-results-label">Prediction Results</span>
+        <button class="btn-dl" onclick="downloadCsvResults()">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5z"/></svg>
+          Download Results
+        </button>
+      </div>
+      <div class="csv-table-wrap">
+        <table id="csv-results-table">
+          <thead id="csv-table-head"></thead>
+          <tbody id="csv-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== DATA STORE ===================== */
+let entries = JSON.parse(localStorage.getItem('sb_entries') || '[]');
+let currentCsvType = 'solar';
+let csvResultsData = [];
+
+function saveEntries() {
+  localStorage.setItem('sb_entries', JSON.stringify(entries));
+}
+
+/* ===================== FORM SWITCH ===================== */
+function switchType(type) {
+  ['solar','paper'].forEach(t => {
+    document.getElementById(t).classList.toggle('active', t === type);
+    document.getElementById('btn-' + t).classList.toggle('active', t === type);
+  });
+  hideResult();
+}
+
+/* ===================== LOADING STATES ===================== */
+function setLoading(btnTextId, spinnerId, loading) {
+  document.getElementById(btnTextId).textContent = loading ? 'Predicting…' : 'Predict Margin';
+  document.getElementById(spinnerId).style.display = loading ? 'block' : 'none';
+}
+
+function hideResult() {
+  document.getElementById('result-box').classList.remove('show');
+  document.getElementById('error-box').classList.remove('show');
+}
+
+function showError(msg) {
+  document.getElementById('result-box').classList.remove('show');
+  const err = document.getElementById('error-box');
+  err.textContent = '⚠ ' + msg;
+  err.classList.add('show');
+}
+
+/* ===================== MARGIN CALCULATION (local fallback) ===================== */
+function calcMargin(revenue, cost) {
+  if (!revenue || revenue <= 0) return null;
+  return ((revenue - cost) / revenue) * 100;
+}
+
+function ratingLabel(m) {
+  if (m >= 40) return '🟢 Healthy margin';
+  if (m >= 20) return '🟡 Moderate — consider reducing costs';
+  return '🔴 Low margin — review your pricing';
+}
+
+function marginClass(m) {
+  if (m >= 40) return 'high';
+  if (m >= 20) return 'mid';
+  return 'low';
+}
+
+/* ===================== SHOW RESULT ===================== */
+function showResult(margin, breakdown) {
+  hideResult();
+  const box = document.getElementById('result-box');
+  document.getElementById('result-value').textContent = margin.toFixed(2) + '%';
+  document.getElementById('result-note').textContent = ratingLabel(margin);
+  const bd = document.getElementById('result-breakdown');
+  bd.innerHTML = breakdown.map(b =>
+    `<div class="rb-item"><div class="rb-label">${b.label}</div><div class="rb-val" style="color:${b.color||'var(--text)'}">${b.value}</div></div>`
+  ).join('');
+  box.classList.add('show');
+}
+
+/* ===================== ADD ENTRY TO TRACKER ===================== */
+function addEntry(entry) {
+  entries.unshift(entry);
+  if (entries.length > 100) entries.pop();
+  saveEntries();
+  renderEntries();
+}
+
+function renderEntries() {
+  const list = document.getElementById('entries-list');
+  const count = document.getElementById('entry-count');
+  count.textContent = entries.length + (entries.length === 1 ? ' entry' : ' entries');
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Fill the form and predict to add entries. Each prediction auto-saves here.</p></div>';
+    return;
+  }
+  list.innerHTML = entries.map((e, i) => `
+    <div class="entry-item" id="entry-${i}">
+      <div class="entry-left">
+        <div class="entry-type ${e.type}">${e.type === 'solar' ? '☀️ Solar' : '📄 Paper Bags'}</div>
+        <div class="entry-details">${e.details}</div>
+      </div>
+      <div class="entry-margin ${marginClass(e.margin)}">${e.margin.toFixed(1)}%</div>
+      <button class="entry-delete" onclick="deleteEntry(${i})" title="Remove">✕</button>
+    </div>
+  `).join('');
+}
+
+function deleteEntry(i) {
+  entries.splice(i, 1);
+  saveEntries();
+  renderEntries();
+}
+
+function clearAll() {
+  if (entries.length === 0) return;
+  if (confirm('Clear all entries?')) { entries = []; saveEntries(); renderEntries(); }
+}
+let marginChartInstance = null;
+let costChartInstance = null;
+function destroyCharts() {
+  if (marginChartInstance) { marginChartInstance.destroy(); marginChartInstance = null; }
+  if (costChartInstance) { costChartInstance.destroy(); costChartInstance = null; }
+}
+
+function renderCharts(chartData) {
+  if (!chartData) return;
+
+  destroyCharts();
+
+  // Margin Pie Chart
+  const pieCtx = document.getElementById('marginPieChart').getContext('2d');
+  marginChartInstance = new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+      labels: chartData.margin_pie.labels,
+      datasets: [{
+        data: chartData.margin_pie.values,
+        backgroundColor: ['#4ff8c8', '#ff6b8a'],
+        borderColor: '#14141f',
+        borderWidth: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { 
+          position: 'bottom',
+          labels: { color: '#f0eeff', padding: 20, font: { size: 13 } }
+        }
+      }
+    }
+  });
+
+  // Cost Breakdown Bar Chart
+  const barCtx = document.getElementById('costBreakdownChart').getContext('2d');
+  costChartInstance = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: chartData.cost_breakdown.labels,
+      datasets: [{
+        label: 'Cost (₹)',
+        data: chartData.cost_breakdown.values,
+        backgroundColor: '#7c6fff',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { 
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.08)' },
+          ticks: { color: '#7b7a96' }
+        },
+        x: {
+          grid: { color: 'rgba(255,255,255,0.08)' },  
+          ticks: { color: '#7b7a96' }
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+/* ===================== PREDICT SOLAR (IMPROVED) ===================== */
+async function predictSolar() {
+  const size    = parseFloat(document.getElementById('s_size').value);
+  const plates  = parseFloat(document.getElementById('s_plates').value);
+  const inv     = parseFloat(document.getElementById('s_inverter').value);
+  const install = parseFloat(document.getElementById('s_install').value);
+  const selling = parseFloat(document.getElementById('s_selling').value);
+
+  if ([size, plates, inv, install, selling].some(v => isNaN(v) || v <= 0)) {
+    showError('Please fill all fields with valid positive numbers.');
+    return;
+  }
+
+  setLoading('solar-btn-text', 'solar-spinner', true);
+  hideResult();
+
+  const payload = {
+    type: "solar",
+    requirement_kw: size,
+    plates_cost: plates,
+    inverter_cost: inv,
+    install_cost: install,
+    selling_price: selling
+  };
+
+  try {
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    // Check if response is ok
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Server error: ${res.status} - ${errorText}`);
+    }
+
+    const result = await res.json();
+
+    // Handle backend error messages
+    if (result.error) {
+      showError(result.error);
+      return;
+    }
+
+    // Success - Show result and charts
+    const totalCost = plates + inv + install;
+    const profit = selling - totalCost;
+
+    showResult(result.margin, [
+      { label: 'Total Revenue', value: '₹' + selling.toLocaleString('en-IN'), color: '#4ff8c8' },
+      { label: 'Total Cost',    value: '₹' + totalCost.toLocaleString('en-IN'), color: '#ff6b8a' },
+      { label: 'Gross Profit',  value: '₹' + profit.toLocaleString('en-IN'), color: profit >= 0 ? '#4ff8c8' : '#ff6b8a' }
+    ]);
+
+    // Render Charts
+    if (result.chart_data) {
+      try {
+        renderCharts(result.chart_data);
+      } catch (chartErr) {
+        console.warn("Chart rendering failed:", chartErr);
+      }
+    } else {
+      console.warn("No chart_data received from backend");
+    }
+
+    // Save to tracker
+    addEntry({
+      type: 'solar',
+      margin: result.margin,
+      details: `${size} kW • Rev ₹${selling.toLocaleString('en-IN')}`,
+      timestamp: new Date().toISOString(),
+      data: payload
+    });
+
+  } catch (err) {
+    console.error("Prediction Error:", err);
+    showError("Failed to get prediction. Check console for details.");
+  } finally {
+    setLoading('solar-btn-text', 'solar-spinner', false);
+  }
+}
+/* ===================== PREDICT PAPER ===================== */
+async function predictPaper() {
+  const qty   = parseFloat(document.getElementById('p_qty').value);
+  const sell  = parseFloat(document.getElementById('p_sell').value);
+  const raw   = parseFloat(document.getElementById('p_raw').value);
+  const labor = parseFloat(document.getElementById('p_labor').value);
+  const elec  = parseFloat(document.getElementById('p_elec').value) || 0;
+  const pack  = parseFloat(document.getElementById('p_pack').value) || 0;
+
+  if ([qty, sell, raw, labor].some(v => isNaN(v) || v < 0)) {
+    showError('Please fill in all required fields.'); return;
+  }
+  if (sell <= 0) { showError('Selling price must be greater than 0.'); return; }
+
+  setLoading('paper-btn-text', 'paper-spinner', true);
+  hideResult();
+
+  await new Promise(r => setTimeout(r, 600));
+
+  const totalRevenue = qty * sell;
+  const totalCost    = (raw + labor + elec + pack) * qty;
+  const margin       = calcMargin(totalRevenue, totalCost);
+
+  if (margin === null) { showError('Invalid input.'); setLoading('paper-btn-text', 'paper-spinner', false); return; }
+
+  const profit = totalRevenue - totalCost;
+  showResult(margin, [
+    { label: 'Total Revenue', value: '₹' + totalRevenue.toLocaleString('en-IN'), color: 'var(--accent2)' },
+    { label: 'Total Cost', value: '₹' + totalCost.toLocaleString('en-IN'), color: 'var(--danger)' },
+    { label: 'Gross Profit', value: '₹' + profit.toLocaleString('en-IN'), color: profit >= 0 ? 'var(--accent2)' : 'var(--danger)' },
+    { label: 'Qty × Price', value: qty + ' × ₹' + sell },
+  ]);
+
+  addEntry({
+    type: 'paper',
+    margin,
+    details: `${qty} units · Rev ₹${totalRevenue.toLocaleString('en-IN')} · Cost ₹${totalCost.toLocaleString('en-IN')}`,
+    timestamp: new Date().toISOString(),
+    data: { quantity: qty, selling_price_per_unit: sell, raw_cost_per_unit: raw, labor_cost: labor, elec_cost: elec, pack_cost: pack, total_revenue: totalRevenue, total_cost: totalCost, gross_profit: profit, gross_margin_pct: margin.toFixed(2) }
+  });
+
+  setLoading('paper-btn-text', 'paper-spinner', false);
+}
+
+/* ===================== AUTO SAVE DRAFT (no-op placeholder) ===================== */
+function autoSaveEntry() {} // fields auto-persist on predict
+
+/* ===================== EXPORT TO EXCEL ===================== */
+function exportToExcel() {
+  if (entries.length === 0) { alert('No entries to export yet. Make some predictions first!'); return; }
+
+  const solar = entries.filter(e => e.type === 'solar').map(e => ({ ...e.data, timestamp: e.timestamp }));
+  const paper = entries.filter(e => e.type === 'paper').map(e => ({ ...e.data, timestamp: e.timestamp }));
+
+  const wb = XLSX.utils.book_new();
+
+  if (solar.length > 0) {
+    const ws = XLSX.utils.json_to_sheet(solar);
+    XLSX.utils.book_append_sheet(wb, ws, 'Solar Predictions');
+  }
+  if (paper.length > 0) {
+    const ws = XLSX.utils.json_to_sheet(paper);
+    XLSX.utils.book_append_sheet(wb, ws, 'Paper Bag Predictions');
+  }
+
+  const summary = entries.map(e => ({
+    type: e.type === 'solar' ? 'Solar' : 'Paper Bags',
+    details: e.details,
+    gross_margin_pct: e.margin.toFixed(2),
+    rating: e.margin >= 40 ? 'Healthy' : e.margin >= 20 ? 'Moderate' : 'Low',
+    timestamp: e.timestamp
+  }));
+  const ws2 = XLSX.utils.json_to_sheet(summary);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+
+  const date = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `SolarBag_Predictions_${date}.xlsx`);
+}
+
+/* ===================== CSV MODAL ===================== */
+function openCsvModal() {
+  document.getElementById('csvModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeCsvModal() {
+  document.getElementById('csvModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('csvModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCsvModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCsvModal(); });
+
+function switchCsvType(type) {
+  currentCsvType = type;
+  ['solar','paper'].forEach(t => document.getElementById('csv-btn-' + t).classList.toggle('active', t === type));
+  document.getElementById('csv-results').style.display = 'none';
+  document.getElementById('csv-progress').style.display = 'none';
+  const note = document.getElementById('csv-format-note');
+  if (type === 'solar') {
+    note.innerHTML = '<strong>Required CSV Columns (Solar):</strong><code>requirement_kw, plates_cost, inverter_cost, install_cost, labour_cost, selling_price</code>';
+  } else {
+    note.innerHTML = '<strong>Required CSV Columns (Paper Bags):</strong><code>quantity, selling_price, raw_cost, labor_cost, elec_cost, pack_cost</code>';
+  }
+}
+
+/* Drag & drop */
+function handleDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+function handleDragLeave(e) { document.getElementById('dropZone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.csv')) processCSV(file);
+  else alert('Please upload a valid .csv file.');
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processCSV(file);
+}
+
+/* ===================== PROCESS CSV ===================== */
+async function processCSV(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('type', currentCsvType);
+
+  const res = await fetch('/predict-csv', {
+    method: 'POST',
+    body: formData
+  });
+
+  const data = await res.json();
+
+  // Then render results + charts for first few entries
+  csvResultsData = data.results;
+  renderCsvResults();
+}
+function renderCsvResults() {
+  const resultsDiv = document.getElementById('csv-results');
+  const label = document.getElementById('csv-results-label');
+  const thead = document.getElementById('csv-table-head');
+  const tbody = document.getElementById('csv-table-body');
+
+  if (csvResultsData.length === 0) { alert('No valid rows found.'); return; }
+
+  label.textContent = `${csvResultsData.length} rows predicted`;
+  resultsDiv.style.display = 'block';
+
+  const keys = Object.keys(csvResultsData[0].row);
+  thead.innerHTML = '<tr>' + keys.map(k => `<th>${k.replace(/_/g,' ')}</th>`).join('') + '</tr>';
+  tbody.innerHTML = csvResultsData.slice(0, 50).map(r => {
+    const m = r.row.gross_margin_pct;
+    const mc = m === 'N/A' ? '' : parseFloat(m) >= 40 ? 'high' : parseFloat(m) >= 20 ? 'mid' : 'low';
+    return '<tr>' + keys.map(k => {
+      if (k === 'gross_margin_pct') return `<td class="margin-cell ${mc}">${m}${m !== 'N/A' ? '%' : ''}</td>`;
+      return `<td>${r.row[k] || '—'}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
+
+  if (csvResultsData.length > 50) {
+    tbody.innerHTML += `<tr><td colspan="${keys.length}" style="text-align:center;color:var(--muted);font-style:italic;">Showing first 50 of ${csvResultsData.length} rows. Download for all results.</td></tr>`;
+  }
+
+  // Also add bulk to entry tracker
+  csvResultsData.slice(0, 20).forEach(r => {
+    if (r.margin !== null) {
+      addEntry({
+        type: currentCsvType,
+        margin: r.margin,
+        details: `CSV · ${r.details} · ${r.margin.toFixed(1)}%`,
+        timestamp: new Date().toISOString(),
+        data: r.row
+      });
+    }
+  });
+}
+
+function downloadCsvResults() {
+  if (csvResultsData.length === 0) return;
+  const keys = Object.keys(csvResultsData[0].row);
+  const csv = [keys.join(','), ...csvResultsData.map(r => keys.map(k => r.row[k] ?? '').join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `SolarBag_CSV_Results_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+/* ===================== INIT ===================== */
+renderEntries();
+</script>
+</body>
+</html>
