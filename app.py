@@ -248,11 +248,9 @@ def login():
 
 @app.route("/home")
 def home():
-    return render_template("home.html")
+    return render_template("Home.html")
 
-@app.route("/about")
-def about():
-    return render_template("about.html")
+
 
 @app.route("/eco_analytics")
 def eco():
