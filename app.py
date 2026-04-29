@@ -8,6 +8,15 @@ import logging, traceback, os
 import pandas as pd
 from pathlib import Path
 import json
+from flask import Flask
+from datetime import datetime
+from flask import request, redirect, render_template
+
+app = Flask(__name__)
+
+# 🔥 AUTO RELOAD SETTINGS
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 EXCEL_FILE = Path("data.xlsx")
 
@@ -250,10 +259,6 @@ def eco():
     return render_template("eco.html")
 
 
-@app.route("/contact")
-def contact():
-    return render_template("contact.html")
-
 @app.route("/dashboard")
 def dashboard():
     return render_template("dashboard.html")
@@ -293,6 +298,33 @@ def model_info():
 @app.route("/inventory-data")
 def inventory_data():
     return jsonify({"waste": "-18%"})
+
+@app.route("/leads")
+def leads():
+
+    enquiries = db.enquiries.find().sort("time",-1)
+
+    return render_template(
+        "leads.html",
+        enquiries=enquiries
+    )
+    
+@app.route("/submit_enquiry", methods=["POST"])
+def submit_enquiry():
+    enquiry = {
+        "name": request.form["first_name"] + " " + request.form["last_name"],
+        "email": request.form["email"],
+        "phone": request.form["phone"],
+        "enquiry_type": request.form["enquiry_type"],
+        "company": request.form["company"],
+        "message": request.form["message"],
+        "status": "New Lead",
+        "time": datetime.now()
+    }
+
+    db.enquiries.insert_one(enquiry)
+
+    return redirect("/contact")
 # =====================================================
 # MONGODB DATA API
 # =====================================================
@@ -365,5 +397,14 @@ def method_not_allowed(e):
 # RUN SERVER
 # =====================================================
 
+# app = Flask(__name__)
+# app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+# if __name__ == "__main__":
+#     app.run(debug=True)
+    
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+    
+if __name__ == "__main__":
+    app.run(debug=True, use_reloader=True)

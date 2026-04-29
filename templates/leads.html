@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Customer Leads Dashboard</title>
+
+<style>
+
+/* ===== PAGE STYLE ===== */
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    margin:0;
+    padding:30px;
+}
+
+h2{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+/* ===== LEAD GRID ===== */
+
+.lead-container{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    gap:20px;
+}
+
+/* ===== LEAD CARD ===== */
+
+.lead-card{
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+    transition:0.3s;
+}
+
+.lead-card:hover{
+    transform:translateY(-5px);
+}
+
+/* ===== STATUS BADGE ===== */
+
+.status{
+    background:#00c853;
+    color:white;
+    padding:5px 12px;
+    border-radius:20px;
+    font-size:14px;
+}
+
+/* ===== BUTTONS ===== */
+
+button{
+    padding:8px 14px;
+    margin-top:10px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    background:#007bff;
+    color:white;
+}
+
+button:hover{
+    background:#0056b3;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="contactForm">
+        <div class="form-group">
+          <label>Business Type</label>
+          <input type="text" id="businesstype" placeholder="Your Business Type" />
+        </div>
+        <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="submitContact()" ">Show Dealers ✉</button>
+          
+        </div>
+
+        <div class="submit-feedback" id="submitFeedback">
+          ✅ Message sent successfully! Our team will reach you within 24 hours.
+        </div>
+      </div>
+</body>
+</html>

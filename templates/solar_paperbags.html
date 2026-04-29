@@ -387,13 +387,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <input type="number" id="s_size" placeholder="e.g. 10" class="no-prefix" oninput="autoSaveEntry('solar')">
           </div>
         </div>
-        <div class="field">
-          <label>Plates Cost (₹)</label>
-          <div class="input-wrap">
-            <span>₹</span>
-            <input type="number" id="s_plates" placeholder="0" oninput="autoSaveEntry('solar')">
-          </div>
-        </div>
+        
         <div class="field">
           <label>Inverter Cost (₹)</label>
           <div class="input-wrap">
@@ -420,6 +414,20 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <div class="input-wrap">
             <span>₹</span>
             <input type="number" id="s_selling" placeholder="0" oninput="autoSaveEntry('solar')">
+          </div>
+        </div>
+        <div class="field">
+          <label>No of Plates</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="n_plates" placeholder="0" oninput="autoSaveEntry('solar')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Per Plate Cost (₹)</label>
+          <div class="input-wrap">
+            <span>₹</span>
+            <input type="number" id="s_plates" placeholder="0" oninput="autoSaveEntry('solar')">
           </div>
         </div>
       </div>
@@ -460,15 +468,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <input type="number" id="p_labor" placeholder="0" oninput="autoSaveEntry('paper')">
           </div>
         </div>
+        
         <div class="field">
-          <label>Electricity Cost (₹)</label>
-          <div class="input-wrap">
-            <span>₹</span>
-            <input type="number" id="p_elec" placeholder="0" oninput="autoSaveEntry('paper')">
-          </div>
-        </div>
-        <div class="field">
-          <label>Packaging Cost (₹)</label>
+          <label>Delivery Cost (₹)</label>
           <div class="input-wrap">
             <span>₹</span>
             <input type="number" id="p_pack" placeholder="0" oninput="autoSaveEntry('paper')">
@@ -753,19 +755,21 @@ function renderCharts(chartData) {
 /* ===================== PREDICT SOLAR (IMPROVED) ===================== */
 async function predictSolar() {
   const size    = parseFloat(document.getElementById('s_size').value);
-  const plates  = parseFloat(document.getElementById('s_plates').value);
+  const perplatesprice  = parseFloat(document.getElementById('s_plates').value);
+  const noofplates  = parseFloat(document.getElementById('n_plates').value);
   const inv     = parseFloat(document.getElementById('s_inverter').value);
   const install = parseFloat(document.getElementById('s_install').value);
   const selling = parseFloat(document.getElementById('s_selling').value);
 
-  if ([size, plates, inv, install, selling].some(v => isNaN(v) || v <= 0)) {
+  if ([size,perplatesprice, noofplates, inv, install, selling].some(v => isNaN(v) || v <= 0)) {
     showError('Please fill all fields with valid positive numbers.');
     return;
   }
 
   setLoading('solar-btn-text', 'solar-spinner', true);
   hideResult();
-
+  const plates = perplatesprice*noofplates
+  console.log(plates)
   const payload = {
     type: "solar",
     requirement_kw: size,
@@ -774,7 +778,7 @@ async function predictSolar() {
     install_cost: install,
     selling_price: selling
   };
-
+  console.log(payload)
   try {
     const res = await fetch('/predict', {
       method: 'POST',
@@ -839,7 +843,7 @@ async function predictPaper() {
   const sell  = parseFloat(document.getElementById('p_sell').value);
   const raw   = parseFloat(document.getElementById('p_raw').value);
   const labor = parseFloat(document.getElementById('p_labor').value);
-  const elec  = parseFloat(document.getElementById('p_elec').value) || 0;
+  //const elec  = parseFloat(document.getElementById('p_elec').value) || 0;
   const pack  = parseFloat(document.getElementById('p_pack').value) || 0;
 
   if ([qty, sell, raw, labor].some(v => isNaN(v) || v < 0)) {
@@ -853,7 +857,7 @@ async function predictPaper() {
   await new Promise(r => setTimeout(r, 600));
 
   const totalRevenue = qty * sell;
-  const totalCost    = (raw + labor + elec + pack) * qty;
+  const totalCost    = (raw + labor  + pack) * qty;
   const margin       = calcMargin(totalRevenue, totalCost);
 
   if (margin === null) { showError('Invalid input.'); setLoading('paper-btn-text', 'paper-spinner', false); return; }
@@ -871,7 +875,7 @@ async function predictPaper() {
     margin,
     details: `${qty} units · Rev ₹${totalRevenue.toLocaleString('en-IN')} · Cost ₹${totalCost.toLocaleString('en-IN')}`,
     timestamp: new Date().toISOString(),
-    data: { quantity: qty, selling_price_per_unit: sell, raw_cost_per_unit: raw, labor_cost: labor, elec_cost: elec, pack_cost: pack, total_revenue: totalRevenue, total_cost: totalCost, gross_profit: profit, gross_margin_pct: margin.toFixed(2) }
+    data: { quantity: qty, selling_price_per_unit: sell, raw_cost_per_unit: raw, labor_cost: labor, pack_cost: pack, total_revenue: totalRevenue, total_cost: totalCost, gross_profit: profit, gross_margin_pct: margin.toFixed(2) }
   });
 
   setLoading('paper-btn-text', 'paper-spinner', false);

@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SolarBag — Business Management System</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=2) }}">
+  <link rel="stylesheet"
+href="{{ url_for('static', filename='style_new.css') }}">
   <style>
 
   /* ── RESET & BASE ── */
@@ -37,44 +38,16 @@ html {
 }
 
 body {
+   background: red;
   font-family: 'DM Sans', system-ui, sans-serif;
   background: var(--earth);
   color: var(--sand);
   overflow-x: hidden;
-  cursor: none;
   line-height: 1.6;
 }
 
 /* ── CUSTOM CURSOR ── */
-.cursor {
-  width: 12px;
-  height: 12px;
-  background: var(--sun);
-  border-radius: 50%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 9999;
-  transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1), 
-              background 0.3s ease;
-  transform: translate(-50%, -50%);
-}
 
-.cursor-ring {
-  width: 36px;
-  height: 36px;
-  border: 1.5px solid var(--sun);
-  border-radius: 50%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 9998;
-  transform: translate(-50%, -50%);
-  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
-  opacity: 0.6;
-}
 
 /* ── NAVIGATION ── */
 nav {
@@ -236,7 +209,6 @@ h1 em {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   text-decoration: none;
-  cursor: none;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   border: none;
   white-space: nowrap;
@@ -444,7 +416,6 @@ h1 em {
   color: inherit;
   display: block;
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-  cursor: none;
 }
 
 .card::before {
@@ -744,7 +715,6 @@ footer p {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: none;
   transition: all 0.25s ease;
 }
 
@@ -778,8 +748,6 @@ footer p {
 </head>
 <body>
 
-  <div class="cursor" id="cursor"></div>
-  <div class="cursor-ring" id="cursorRing"></div>
 
   <!-- NAV -->
   <nav>
@@ -874,7 +842,7 @@ footer p {
       <div class="predict-label">AI Prediction Engine</div>
       <h2>Forecast Your <em>Gross</em><br>Revenue</h2>
       <p>Our prediction model analyses seasonality, market trends, and your historical sales to project quarterly and annual gross revenue for both solar and paper bag product lines — so you plan, not guess.</p>
-      <a href="#prediction" class="btn btn-primary">Start Predicting →</a>
+      <a href="/prediction" class="btn btn-primary">Start Predicting →</a>
     </div>
     <div class="chart-mock reveal">
       <div class="chart-title">Projected Revenue — Quarterly</div>
@@ -986,73 +954,22 @@ footer p {
       </div>
 
       <div id="contactForm">
-        <div class="contact-grid">
-          <div class="form-group">
-            <label>First Name</label>
-            <input type="text" id="fname" placeholder="Rahul" />
-          </div>
-          <div class="form-group">
-            <label>Last Name</label>
-            <input type="text" id="lname" placeholder="Sharma" />
-          </div>
-        </div>
-        <div class="contact-grid">
-          <div class="form-group">
-            <label>Email Address</label>
-            <input type="email" id="email" placeholder="rahul@example.com" />
-          </div>
-          <div class="form-group">
-            <label>Phone Number</label>
-            <input type="tel" id="phone" placeholder="+91 98765 00000" />
-          </div>
-        </div>
         <div class="form-group">
-          <label>Enquiry Type</label>
-          <select id="enquiryType">
-            <option value="">— Select a topic —</option>
-            <option value="demo">Product Demo</option>
-            <option value="onboarding">Enterprise Onboarding</option>
-            <option value="data">Data Export / Integration</option>
-            <option value="technical">Technical Support</option>
-            <option value="billing">Billing / Pricing</option>
-            <option value="other">Other</option>
-          </select>
+          <label>Business Type</label>
+          <input type="text" id="businesstype" placeholder="Your Business Type" />
         </div>
-        <div class="form-group">
-          <label>Business / Company Name</label>
-          <input type="text" id="company" placeholder="Your Business Name" />
-        </div>
-        <div class="form-group">
-          <label>Message</label>
-          <textarea id="message" placeholder="Tell us about your requirements, questions, or the issue you're facing..."></textarea>
-        </div>
-
         <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="submitContact()" style="cursor:none;">Send Message ✉</button>
-          <button class="btn btn-secondary" onclick="closeModal('contactModal')" style="cursor:none;">Cancel</button>
+          <button class="btn btn-primary" onclick="submitContact()" ">Show Dealers ✉</button>
+          
         </div>
 
-        <div class="submit-feedback" id="submitFeedback">
-          ✅ Message sent successfully! Our team will reach you within 24 hours.
-        </div>
+        
       </div>
     </div>
   </div>
 
   <script>
-    /* ── Custom Cursor ── */
-    const cursor = document.getElementById('cursor');
-    const ring = document.getElementById('cursorRing');
-    document.addEventListener('mousemove', e => {
-      cursor.style.left = e.clientX + 'px';
-      cursor.style.top = e.clientY + 'px';
-      ring.style.left = e.clientX + 'px';
-      ring.style.top = e.clientY + 'px';
-    });
-    document.querySelectorAll('a, button, .card, .btn, input, select, textarea').forEach(el => {
-      el.addEventListener('mouseenter', () => { cursor.style.transform = 'translate(-50%,-50%) scale(2)'; ring.style.opacity = '1'; });
-      el.addEventListener('mouseleave', () => { cursor.style.transform = 'translate(-50%,-50%) scale(1)'; ring.style.opacity = '0.6'; });
-    });
+
 
     /* ── Scroll Reveal ── */
     const revealEls = document.querySelectorAll('.reveal');
