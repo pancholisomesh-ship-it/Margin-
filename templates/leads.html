@@ -1,91 +1,361 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Customer Leads Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SolarBag – Support & Enquiries</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-<style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-/* ===== PAGE STYLE ===== */
+    /* ── Trigger button ── */
+    .open-btn {
+      background: #f5a623;
+      color: #000;
+      border: none;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+    }
+    .open-btn:hover { background: #e0941a; }
 
-body{
-    font-family: Arial, sans-serif;
-    background:#f4f6f8;
-    margin:0;
-    padding:30px;
-}
+    /* ── Overlay ── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .overlay.active { display: flex; }
 
-h2{
-    text-align:center;
-    margin-bottom:30px;
-}
+    /* ── Modal ── */
+    .modal {
+      background: #1e1e1e;
+      border-radius: 14px;
+      padding: 32px 28px 28px;
+      width: 100%;
+      max-width: 500px;
+      position: relative;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
 
-/* ===== LEAD GRID ===== */
+    .close-btn {
+      position: absolute;
+      top: 14px; right: 14px;
+      background: #333;
+      border: none;
+      color: #fff;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .close-btn:hover { background: #444; }
 
-.lead-container{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
-    gap:20px;
-}
+    .modal h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .modal h3 {
+      font-size: 14px;
+      font-weight: 500;
+      color: #aaa;
+      margin-bottom: 16px;
+    }
 
-/* ===== LEAD CARD ===== */
+    .contact-info {
+      font-size: 14px;
+      color: #ccc;
+      line-height: 1.9;
+      margin-bottom: 20px;
+    }
+    .contact-info span { margin-right: 8px; }
 
-.lead-card{
-    background:white;
-    padding:20px;
-    border-radius:12px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.1);
-    transition:0.3s;
-}
+    /* ── Input row ── */
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .input-row label {
+      font-size: 14px;
+      color: #ccc;
+      white-space: nowrap;
+    }
+    .input-row input {
+      flex: 1;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .input-row input:focus { border-color: #f5a623; }
 
-.lead-card:hover{
-    transform:translateY(-5px);
-}
+    .hint {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 16px;
+      padding-left: 2px;
+    }
 
-/* ===== STATUS BADGE ===== */
+    /* ── Show Dealers button ── */
+    .show-btn {
+      background: #f5a623;
+      color: #000;
+      border: none;
+      padding: 12px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      justify-content: center;
+    }
+    .show-btn:hover { background: #e0941a; }
+    .show-btn:disabled { background: #7a5010; color: #333; cursor: not-allowed; }
 
-.status{
-    background:#00c853;
-    color:white;
-    padding:5px 12px;
-    border-radius:20px;
-    font-size:14px;
-}
+    /* ── Error ── */
+    .error-msg {
+      display: none;
+      color: #ff6b6b;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .error-msg.active { display: block; }
 
-/* ===== BUTTONS ===== */
+    /* ── Results section ── */
+    .results-section { margin-top: 24px; }
 
-button{
-    padding:8px 14px;
-    margin-top:10px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    background:#007bff;
-    color:white;
-}
+    .results-header {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .results-header.active { display: block; }
 
-button:hover{
-    background:#0056b3;
-}
+    .dealer-card {
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
 
-</style>
+    .dealer-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .dealer-badge {
+      display: inline-block;
+      background: #2d1f00;
+      color: #f5a623;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: capitalize;
+      margin-bottom: 10px;
+    }
+    .dealer-detail {
+      font-size: 13px;
+      color: #aaa;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .dealer-detail .icon { flex-shrink: 0; }
+
+    .no-results {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      padding: 24px 0;
+      display: none;
+    }
+    .no-results.active { display: block; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #000;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+    .spinner.active { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
-
 <body>
 
-<div id="contactForm">
-        <div class="form-group">
-          <label>Business Type</label>
-          <input type="text" id="businesstype" placeholder="Your Business Type" />
-        </div>
-        <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="submitContact()" ">Show Dealers ✉</button>
-          
-        </div>
+  <button class="open-btn" onclick="document.getElementById('modal-overlay').classList.add('active')">
+    Support & Enquiries
+  </button>
 
-        <div class="submit-feedback" id="submitFeedback">
-          ✅ Message sent successfully! Our team will reach you within 24 hours.
-        </div>
+  <!-- Modal Overlay -->
+  <div class="overlay" id="modal-overlay">
+    <div class="modal">
+
+      <button class="close-btn" onclick="closeModal()">✕</button>
+
+      <h2>Support & Enquiries</h2>
+      <h3>Contact & Support</h3>
+
+      <p class="contact-info" style="margin-bottom:12px; font-size:13px; color:#999; line-height:1.6;">
+        Reach our team for product demos, enterprise onboarding, data export requests, or any technical support. We typically respond within 24 hours.
+      </p>
+
+      <div class="contact-info">
+        <div><span>✉️</span> support@solarbag.in</div>
+        <div><span>📞</span> +91 98765 43210</div>
+        <div><span>📍</span> Jaipur, Rajasthan</div>
       </div>
+
+      <!-- Dealer Search -->
+      <div class="input-row">
+        <label>Business Type</label>
+        <input type="text" id="business-type-input" placeholder="e.g. Retailer, Distributor, Installer" />
+      </div>
+      <p class="hint">Type your business type to find nearby dealers</p>
+
+      <button class="show-btn" id="show-btn" onclick="fetchDealers()">
+        <span>SHOW DEALERS</span>
+        <span>✉</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+
+      <p class="error-msg" id="error-msg">Please enter your business type first.</p>
+
+      <!-- Results -->
+      <div class="results-section">
+        <p class="results-header" id="results-header"></p>
+        <div id="dealers-list"></div>
+        <p class="no-results" id="no-results">No dealers found for this business type. Try "Retailer", "Distributor", or "Installer".</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('active');
+      // Reset
+      document.getElementById('business-type-input').value = '';
+      document.getElementById('dealers-list').innerHTML = '';
+      document.getElementById('results-header').classList.remove('active');
+      document.getElementById('no-results').classList.remove('active');
+      document.getElementById('error-msg').classList.remove('active');
+    }
+
+    async function fetchDealers() {
+      const input = document.getElementById('business-type-input');
+      const businessType = input.value.trim();
+
+      const errorMsg = document.getElementById('error-msg');
+      const dealersList = document.getElementById('dealers-list');
+      const resultsHeader = document.getElementById('results-header');
+      const noResults = document.getElementById('no-results');
+      const btn = document.getElementById('show-btn');
+      const spinner = document.getElementById('spinner');
+
+      // Validate
+      if (!businessType) {
+        errorMsg.classList.add('active');
+        return;
+      }
+      errorMsg.classList.remove('active');
+
+      // Loading state
+      btn.disabled = true;
+      spinner.classList.add('active');
+      dealersList.innerHTML = '';
+      resultsHeader.classList.remove('active');
+      noResults.classList.remove('active');
+
+      try {
+        const res = await fetch(`/api/dealers?type=${encodeURIComponent(businessType)}`);
+        const data = await res.json();
+
+        spinner.classList.remove('active');
+        btn.disabled = false;
+
+        if (data.error) {
+          errorMsg.textContent = data.error;
+          errorMsg.classList.add('active');
+          return;
+        }
+
+        if (!data.dealers || data.dealers.length === 0) {
+          noResults.classList.add('active');
+          return;
+        }
+
+        // Show count
+        resultsHeader.textContent = `Found ${data.dealers.length} dealer(s) for "${businessType}"`;
+        resultsHeader.classList.add('active');
+
+        // Render each dealer
+        data.dealers.forEach(dealer => {
+          const card = document.createElement('div');
+          card.className = 'dealer-card';
+          card.innerHTML = `
+            <div class="dealer-name">${dealer.name}</div>
+            <span class="dealer-badge">${dealer.business_type}</span>
+            <div class="dealer-detail"><span class="icon">📍</span> ${dealer.address}, ${dealer.city}, ${dealer.state}</div>
+            <div class="dealer-detail"><span class="icon">📞</span> ${dealer.phone}</div>
+            <div class="dealer-detail"><span class="icon">✉️</span> ${dealer.email || 'N/A'}</div>
+          `;
+          dealersList.appendChild(card);
+        });
+
+      } catch (err) {
+        spinner.classList.remove('active');
+        btn.disabled = false;
+        errorMsg.textContent = 'Server error. Make sure Flask is running.';
+        errorMsg.classList.add('active');
+      }
+    }
+
+    // Allow Enter key to trigger search
+    document.getElementById('business-type-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') fetchDealers();
+    });
+  </script>
+
 </body>
 </html>

@@ -1,383 +1,621 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
-from ml_model import predict_margin
+from datetime import datetime, timedelta
 from pymongo import MongoClient
-from datetime import datetime
-from dotenv import load_dotenv
-import logging, traceback, os
-import pandas as pd
-from pathlib import Path
-import json
-from flask import Flask
-from datetime import datetime
-from flask import request, redirect, render_template
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import secrets
+import random
 
-app = Flask(__name__)
+# =====================================================
+# APP INIT
+# =====================================================
 
-# 🔥 AUTO RELOAD SETTINGS
-app.config["TEMPLATES_AUTO_RELOAD"] = True
-app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
-
-EXCEL_FILE = Path("data.xlsx")
-
-def save_to_excel(data, margin, biz_type):
-    record = data.copy()
-    record["business_type"] = biz_type
-    record["predicted_margin"] = margin
-    df_new = pd.DataFrame([record])
-    if EXCEL_FILE.exists():
-        df_old = pd.read_excel(EXCEL_FILE)
-        df_final = pd.concat([df_old, df_new], ignore_index=True)
-    else:
-        df_final = df_new
-    df_final.to_excel(EXCEL_FILE, index=False)
-
-load_dotenv()
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
-logger = logging.getLogger(__name__)
-
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
-DB_NAME = os.environ.get("DB_NAME", "business_management")
-
-try:
-    mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    db = mongo_client[DB_NAME]
-    predictions_collection = db["predictions"]
-    solar_data_collection = db["solar_data"]
-    paper_data_collection = db["paper_data"]
-    mongo_client.server_info()
-    logger.info("MongoDB connected successfully")
-except Exception as e:
-    logger.warning(f"MongoDB connection failed: {e}")
-    mongo_client = db = predictions_collection = solar_data_collection = paper_data_collection = None
-
-NUMERIC_FIELDS = ["Quantity", "Unit_Price", "Total_Value"]
-SOLAR_FIELDS = ["Item_Name", "Brand", "Specification", "Unit", "Quantity", "Unit_Price", "Total_Value", "Supplier", "Purchase_Date"]
-PAPER_FIELDS = ["Item_ID", "Bag_Type", "Size", "Material", "GSM", "Color", "Quantity", "Unit_Price", "Total_Value", "Supplier", "Purchase_Date"]
-
-# ===================== CHART DATA GENERATOR =====================
-def to_float(val, default=0):
-    """Safely convert value to float, handling None."""
-    if val is None:
-        return float(default)
-    return float(val)
-
-def generate_chart_data(biz_type, input_data, margin):
-    if biz_type == "solar":
-        size = to_float(input_data.get("requirement_kw"), 0)
-        plates = to_float(input_data.get("plates_cost"), 0)
-        inverter = to_float(input_data.get("inverter_cost"), 0)
-        install = to_float(input_data.get("install_cost"), 0)
-        selling = to_float(input_data.get("selling_price"), 0)
-        total_cost = plates + inverter + install
-
-        return {
-            "margin_pie": {
-                "labels": ["Gross Margin", "Cost Portion"],
-                "values": [margin, 100 - margin]
-            },
-            "cost_breakdown": {
-                "labels": ["Plates", "Inverter", "Installation"],
-                "values": [plates, inverter, install]
-            },
-            "profit_analysis": {
-                "revenue": selling,
-                "total_cost": total_cost,
-                "profit": selling - total_cost
-            }
-        }
-    else:  # paper
-        qty = to_float(input_data.get("quantity"), 0)
-        sell_price = to_float(input_data.get("selling_price"), 0)
-        raw = to_float(input_data.get("raw_cost"), 0)
-        labor = to_float(input_data.get("labor_cost"), 0)
-        elec = to_float(input_data.get("elec_cost"), 0)
-        pack = to_float(input_data.get("pack_cost"), 0)
-
-        total_revenue = qty * sell_price
-        total_cost = (raw + labor + elec + pack) * qty
-
-        return {
-            "margin_pie": {
-                "labels": ["Gross Margin", "Cost Portion"],
-                "values": [margin, 100 - margin]
-            },
-            "cost_breakdown": {
-                "labels": ["Raw Material", "Labor", "Electricity", "Packaging"],
-                "values": [raw*qty, labor*qty, elec*qty, pack*qty]
-            },
-            "profit_analysis": {
-                "revenue": total_revenue,
-                "total_cost": total_cost,
-                "profit": total_revenue - total_cost
-            }
-        }
-
-# ===================== UPDATED PREDICT ROUTE =====================
-@app.route("/predict", methods=["POST"])
-def predict():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "JSON body required"}), 400
-
-        biz_type = data.get("type")
-
-        if biz_type == "solar":
-            # Updated Solar fields (removed labour_cost from validation)
-            solar_fields = ["requirement_kw", "plates_cost", "inverter_cost", "install_cost", "selling_price"]
-            errors = validate_fields(data, solar_fields)
-            collection = solar_data_collection
-        elif biz_type == "paper":
-            errors = validate_fields(data, PAPER_FIELDS)
-            collection = paper_data_collection
-        else:
-            return jsonify({"error": "Use solar or paper"}), 400
-
-        if errors:
-            return jsonify({"error": "Validation Failed", "details": errors}), 422
-
-        features = extract_features(data)
-        margin = round(float(predict_margin(features)), 4)
-
-        # Generate chart data
-        chart_data = generate_chart_data(biz_type, data, margin)
-
-        # Save to MongoDB
-        predictions_collection.insert_one({
-            "timestamp": datetime.utcnow(),
-            "business_type": biz_type,
-            "input_data": data,
-            "predicted_margin": margin
-        })
-
-        if collection is not None:
-            rec = data.copy()
-            rec["created_at"] = datetime.utcnow()
-            rec["predicted_margin"] = margin
-            collection.insert_one(rec)
-
-        save_to_excel(data, margin, biz_type)
-
-        return jsonify({
-            "margin": margin,
-            "business_type": biz_type,
-            "features_used": features,
-            "chart_data": chart_data
-        })
-
-    except Exception as e:
-        logger.error(traceback.format_exc())
-        return jsonify({"error": "Internal Server Error"}), 500
-
-
-# ===================== NEW BULK CSV PREDICTION ROUTE =====================
-@app.route("/predict-csv", methods=["POST"])
-def predict_csv():
-    try:
-        if 'file' not in request.files:
-            return jsonify({"error": "No file uploaded"}), 400
-
-        file = request.files['file']
-        biz_type = request.form.get("type")
-
-        if biz_type not in ["solar", "paper"]:
-            return jsonify({"error": "Invalid business type"}), 400
-
-        df = pd.read_csv(file)
-
-        results = []
-        for _, row in df.iterrows():
-            data = row.to_dict()
-
-            if biz_type == "solar":
-                # Clean column names for solar
-                data['requirement_kw'] = data.get('requirement_kw') or data.get('size_kw')
-                data['plates_cost'] = data.get('plates_cost')
-                data['inverter_cost'] = data.get('inverter_cost')
-                data['install_cost'] = data.get('install_cost')
-                data['selling_price'] = data.get('selling_price')
-
-            features = extract_features(data)
-            margin = round(float(predict_margin(features)), 4)
-            chart_data = generate_chart_data(biz_type, data, margin)
-
-            results.append({
-                "input": data,
-                "margin": margin,
-                "chart_data": chart_data
-            })
-
-        return jsonify({
-            "business_type": biz_type,
-            "total_predictions": len(results),
-            "results": results
-        })
-
-    except Exception as e:
-        logger.error(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
-def validate_fields(data, required_fields):
-    errors = []
-    for field in required_fields:
-        value = data.get(field)
-        if value is None or str(value).strip() == "":
-            errors.append(f"{field} is required")
-            continue
-        if field in NUMERIC_FIELDS:
-            try:
-                float(value)
-            except:
-                errors.append(f"{field} must be numeric")
-    return errors
-
-def extract_features(data):
-    type_code = 1 if data.get("type") == "solar" else 0
-    return [type_code, float(data.get("Quantity",0)), float(data.get("Unit_Price",0)), float(data.get("Total_Value",0))]
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 # =====================================================
-# WEBSITE ROUTES
+# MONGODB — dealers only
+# =====================================================
+
+client             = MongoClient("mongodb+srv://admin:root@cluster0.cvf0hfq.mongodb.net/")
+db                 = client["somesh"]
+dealers_collection = db["dealers"]
+
+# =====================================================
+# GMAIL CONFIG
+# =====================================================
+# Steps to get App Password:
+#   1. myaccount.google.com → Security → 2-Step Verification → ON
+#   2. Security → App Passwords → Generate
+#   3. Paste the 16-char password below
+
+GMAIL_USER     = "your_gmail@gmail.com"   # ← Change this
+GMAIL_PASSWORD = "xxxx xxxx xxxx xxxx"    # ← Paste App Password here
+BASE_URL       = "http://127.0.0.1:5000"  # ← Change to your domain in production
+
+# =====================================================
+# MEMORY STORE — pre-seeded with demo data
+# =====================================================
+
+prediction_store = {
+    "solar": [
+        {
+            "prediction": 42.5,
+            "timestamp": "2026-04-01 10:00",
+            "breakdown": [
+                {"label": "Total Revenue",    "value": "₹1,50,000", "color": "var(--accent2)"},
+                {"label": "Total Cost",       "value": "₹86,250",   "color": "var(--danger)"},
+                {"label": "Gross Profit",     "value": "₹63,750",   "color": "var(--accent)"},
+                {"label": "Plate Total Cost", "value": "₹60,000",   "color": "var(--muted)"}
+            ],
+            "chart": {
+                "margin_pie": {"labels": ["Gross Margin", "Cost"], "values": [42.5, 57.5]},
+                "cost_breakdown": {"labels": ["Inverter", "Installation", "Plates"], "values": [15000, 11250, 60000]}
+            }
+        },
+        {
+            "prediction": 38.2,
+            "timestamp": "2026-04-10 14:30",
+            "breakdown": [
+                {"label": "Total Revenue",    "value": "₹2,00,000", "color": "var(--accent2)"},
+                {"label": "Total Cost",       "value": "₹1,23,560", "color": "var(--danger)"},
+                {"label": "Gross Profit",     "value": "₹76,440",   "color": "var(--accent)"},
+                {"label": "Plate Total Cost", "value": "₹90,000",   "color": "var(--muted)"}
+            ],
+            "chart": {
+                "margin_pie": {"labels": ["Gross Margin", "Cost"], "values": [38.2, 61.8]},
+                "cost_breakdown": {"labels": ["Inverter", "Installation", "Plates"], "values": [18000, 15560, 90000]}
+            }
+        },
+        {
+            "prediction": 51.0,
+            "timestamp": "2026-04-20 09:15",
+            "breakdown": [
+                {"label": "Total Revenue",    "value": "₹2,50,000", "color": "var(--accent2)"},
+                {"label": "Total Cost",       "value": "₹1,22,500", "color": "var(--danger)"},
+                {"label": "Gross Profit",     "value": "₹1,27,500", "color": "var(--accent)"},
+                {"label": "Plate Total Cost", "value": "₹95,000",   "color": "var(--muted)"}
+            ],
+            "chart": {
+                "margin_pie": {"labels": ["Gross Margin", "Cost"], "values": [51.0, 49.0]},
+                "cost_breakdown": {"labels": ["Inverter", "Installation", "Plates"], "values": [12000, 15500, 95000]}
+            }
+        }
+    ],
+    "paperbags": [
+        {
+            "prediction": 38.0,
+            "timestamp": "2026-04-02 11:30",
+            "breakdown": [
+                {"label": "Total Revenue",   "value": "₹80,000",  "color": "var(--accent2)"},
+                {"label": "Total Cost",      "value": "₹49,600",  "color": "var(--danger)"},
+                {"label": "Gross Profit",    "value": "₹30,400",  "color": "var(--accent)"},
+                {"label": "Per Unit Margin", "value": "₹30.40",   "color": "var(--warn)"}
+            ],
+            "chart": {
+                "margin_pie": {"labels": ["Gross Margin", "Cost"], "values": [38.0, 62.0]},
+                "cost_breakdown": {"labels": ["Raw Material", "Labour", "Delivery"], "values": [32000, 12000, 5600]}
+            }
+        },
+        {
+            "prediction": 44.5,
+            "timestamp": "2026-04-12 16:00",
+            "breakdown": [
+                {"label": "Total Revenue",   "value": "₹1,20,000", "color": "var(--accent2)"},
+                {"label": "Total Cost",      "value": "₹66,600",   "color": "var(--danger)"},
+                {"label": "Gross Profit",    "value": "₹53,400",   "color": "var(--accent)"},
+                {"label": "Per Unit Margin", "value": "₹53.40",    "color": "var(--warn)"}
+            ],
+            "chart": {
+                "margin_pie": {"labels": ["Gross Margin", "Cost"], "values": [44.5, 55.5]},
+                "cost_breakdown": {"labels": ["Raw Material", "Labour", "Delivery"], "values": [45000, 14000, 7600]}
+            }
+        },
+        {
+            "prediction": 35.8,
+            "timestamp": "2026-04-22 13:45",
+            "breakdown": [
+                {"label": "Total Revenue",   "value": "₹60,000",  "color": "var(--accent2)"},
+                {"label": "Total Cost",      "value": "₹38,520",  "color": "var(--danger)"},
+                {"label": "Gross Profit",    "value": "₹21,480",  "color": "var(--accent)"},
+                {"label": "Per Unit Margin", "value": "₹21.48",   "color": "var(--warn)"}
+            ],
+            "chart": {
+                "margin_pie": {"labels": ["Gross Margin", "Cost"], "values": [35.8, 64.2]},
+                "cost_breakdown": {"labels": ["Raw Material", "Labour", "Delivery"], "values": [24000, 10000, 4520]}
+            }
+        }
+    ]
+}
+
+# =====================================================
+# HELPER — time series generator
+# =====================================================
+
+def generate_time_series(base_value, periods=6):
+    labels, values = [], []
+    now = datetime.now()
+    for i in range(periods):
+        dt = now - timedelta(days=30 * (periods - i))
+        labels.append(dt.strftime("%b %Y"))
+        noise = random.uniform(-0.05, 0.05)
+        values.append(round(base_value * (1 + noise), 2))
+    return labels, values
+
+# =====================================================
+# HELPER — send Gmail verification email
+# =====================================================
+
+def send_verification_email(dealer_email, dealer_name, token):
+    verify_link = f"{BASE_URL}/verify-email?token={token}"
+
+    msg            = MIMEMultipart("alternative")
+    msg["Subject"] = "Verify your SolarBag Dealer Email"
+    msg["From"]    = GMAIL_USER
+    msg["To"]      = dealer_email
+
+    html = f"""
+    <html>
+    <body style="font-family:Arial,sans-serif;background:#f4f6f8;padding:30px;">
+      <div style="max-width:500px;margin:auto;background:white;border-radius:12px;padding:30px;
+                  box-shadow:0 5px 15px rgba(0,0,0,0.1);">
+        <h2 style="color:#f5a623;">SolarBag Dealer Verification</h2>
+        <p>Hello <strong>{dealer_name}</strong>,</p>
+        <p>You have been registered as a SolarBag dealer.
+           Please verify your email by clicking the button below:</p>
+        <a href="{verify_link}"
+           style="display:inline-block;margin:20px 0;background:#f5a623;color:#000;
+                  padding:12px 28px;border-radius:8px;font-weight:bold;text-decoration:none;">
+          Verify My Email
+        </a>
+        <p style="color:#999;font-size:13px;">
+          This link expires in 24 hours. If you did not request this, ignore this email.
+        </p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+        <p style="color:#bbb;font-size:12px;">SolarBag | Jaipur, Rajasthan | support@solarbag.in</p>
+      </div>
+    </body>
+    </html>
+    """
+
+    msg.attach(MIMEText(html, "html"))
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(GMAIL_USER, GMAIL_PASSWORD)
+            server.sendmail(GMAIL_USER, dealer_email, msg.as_string())
+        print(f"Verification email sent to {dealer_email}")
+        return True
+    except Exception as e:
+        print(f"Email send failed: {e}")
+        return False
+
+# =====================================================
+# SEED — sample dealers (runs once if collection empty)
+# =====================================================
+
+def seed_dealers():
+    if dealers_collection.count_documents({}) == 0:
+        sample_dealers = [
+            {
+                "name": "SunPower Solar Solutions",
+                "business_type": "retailer",
+                "phone": "+91 98001 11001",
+                "email": "sunpower@example.com",
+                "city": "Jaipur", "state": "Rajasthan",
+                "address": "12, Tonk Road, Jaipur",
+                "email_verified": False,
+                "verify_token": secrets.token_urlsafe(32),
+                "created_at": datetime.utcnow()
+            },
+            {
+                "name": "GreenWatt Distributors",
+                "business_type": "distributor",
+                "phone": "+91 98001 22002",
+                "email": "greenwatt@example.com",
+                "city": "Jodhpur", "state": "Rajasthan",
+                "address": "45, Station Road, Jodhpur",
+                "email_verified": False,
+                "verify_token": secrets.token_urlsafe(32),
+                "created_at": datetime.utcnow()
+            },
+            {
+                "name": "SolarFit Installers",
+                "business_type": "installer",
+                "phone": "+91 98001 33003",
+                "email": "solarfit@example.com",
+                "city": "Udaipur", "state": "Rajasthan",
+                "address": "8, Fateh Sagar Road, Udaipur",
+                "email_verified": False,
+                "verify_token": secrets.token_urlsafe(32),
+                "created_at": datetime.utcnow()
+            },
+        ]
+        dealers_collection.insert_many(sample_dealers)
+        print("Sample dealers inserted into MongoDB.")
+
+seed_dealers()
+
+# =====================================================
+# WEBSITE PAGES  (original routes — unchanged)
 # =====================================================
 
 @app.route("/")
-def login():
+def index():
     return render_template("index.html")
 
 @app.route("/home")
 def home():
     return render_template("Home.html")
 
-
+@app.route("/prediction")
+def prediction():
+    return render_template("solar_paperbags.html")
 
 @app.route("/eco_analytics")
 def eco():
     return render_template("eco.html")
 
+# =====================================================
+# DASHBOARD PAGE
+# =====================================================
 
 @app.route("/dashboard")
 def dashboard():
-    return render_template("dashboard.html")
+    solar = prediction_store["solar"]
+    paper = prediction_store["paperbags"]
+    return render_template("dashboard.html",
+        solar_latest  = solar[-1] if solar else None,
+        solar_runs    = len(solar),
+        solar_history = solar[-10:],
+        paper_latest  = paper[-1] if paper else None,
+        paper_runs    = len(paper),
+        paper_history = paper[-10:]
+    )
 
-@app.route("/prediction")
-def prediction():
-    return render_template("solar_paperbags.html")
+# =====================================================
+# DASHBOARD JSON API
+# =====================================================
+
+@app.route("/api/dashboard")
+def dashboard_api():
+    solar = prediction_store["solar"]
+    paper = prediction_store["paperbags"]
+    return jsonify({
+        "solar":     {"latest": solar[-1] if solar else None, "total_runs": len(solar), "history": solar[-10:]},
+        "paperbags": {"latest": paper[-1] if paper else None, "total_runs": len(paper), "history": paper[-10:]}
+    })
+
+# =====================================================
+# SOLAR MARGIN PREDICTION API
+# =====================================================
+
+@app.route("/predict_solar", methods=["POST"])
+def predict_solar():
+    data = request.get_json()
+
+    inverter_cost  = float(data.get("inverter_cost", 0))
+    install_cost   = float(data.get("install_cost", 0))
+    selling_price  = float(data.get("selling_price", 0))
+    no_of_plates   = float(data.get("no_of_plates", 0))
+    plate_cost     = float(data.get("plate_cost", 0))
+
+    total_plate_cost = no_of_plates * plate_cost
+    total_cost       = inverter_cost + install_cost + total_plate_cost
+
+    if selling_price <= 0:
+        return jsonify({"error": "Selling price must be greater than 0"}), 400
+
+    gross_margin_pct = ((selling_price - total_cost) / selling_price) * 100
+    labels, values   = generate_time_series(gross_margin_pct)
+
+    result = {
+        "prediction": round(gross_margin_pct, 2),
+        "timestamp":  datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "type":       "solar",
+        "inputs": {
+            "inverter_cost":  inverter_cost,
+            "install_cost":   install_cost,
+            "selling_price":  selling_price,
+            "no_of_plates":   no_of_plates,
+            "plate_cost":     plate_cost
+        },
+        "breakdown": [
+            {"label": "Total Revenue",    "value": f"Rs.{selling_price:,.0f}",              "color": "var(--accent2)"},
+            {"label": "Total Cost",       "value": f"Rs.{total_cost:,.0f}",                 "color": "var(--danger)"},
+            {"label": "Gross Profit",     "value": f"Rs.{selling_price - total_cost:,.0f}", "color": "var(--accent)"},
+            {"label": "Plate Total Cost", "value": f"Rs.{total_plate_cost:,.0f}",           "color": "var(--muted)"}
+        ],
+        "chart": {
+            "margin_pie": {
+                "labels": ["Gross Margin", "Cost"],
+                "values": [round(gross_margin_pct, 2), round(100 - gross_margin_pct, 2)]
+            },
+            "cost_breakdown": {
+                "labels": ["Inverter", "Installation", "Plates"],
+                "values": [inverter_cost, install_cost, total_plate_cost]
+            },
+            "trend": {"labels": labels, "values": values}
+        }
+    }
+
+    prediction_store["solar"].append(result)
+    return jsonify(result)
+
+# =====================================================
+# SOLAR ENERGY ESTIMATION API
+# =====================================================
+
+@app.route("/predict_solar_energy", methods=["POST"])
+def predict_solar_energy():
+    data = request.get_json()
+
+    irradiance  = float(data.get("irradiance", 800))
+    temperature = float(data.get("temperature", 25))
+    panel_area  = float(data.get("panel_area", 10))
+    efficiency  = float(data.get("efficiency", 0.18))
+    hours       = float(data.get("hours", 6))
+
+    base_power     = irradiance * panel_area * efficiency
+    daily_energy   = base_power * hours / 1000
+    monthly_energy = daily_energy * 30
+    temp_factor    = 1 - max(0, (temperature - 25) * 0.004)
+    monthly_energy *= temp_factor
+    prediction     = round(monthly_energy, 2)
+
+    labels, values = generate_time_series(prediction)
+
+    return jsonify({
+        "prediction": prediction,
+        "timestamp":  datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "chart": {"labels": labels, "values": values}
+    })
+
+# =====================================================
+# PAPER BAG GROSS MARGIN API
+# =====================================================
+
+@app.route("/predict_paperbags", methods=["POST"])
+def predict_paperbags():
+    data = request.get_json()
+
+    quantity      = float(data.get("quantity", 0))
+    selling_price = float(data.get("selling_price", 0))
+    raw_material  = float(data.get("raw_material", 0))
+    labor_cost    = float(data.get("labor_cost", 0))
+    delivery_cost = float(data.get("delivery_cost", 0))
+
+    total_cost = raw_material + labor_cost + delivery_cost
+
+    if selling_price <= 0:
+        return jsonify({"error": "Selling price must be greater than 0"}), 400
+
+    gross_margin_pct = ((selling_price - total_cost) / selling_price) * 100
+    labels, values   = generate_time_series(gross_margin_pct)
+
+    result = {
+        "prediction": round(gross_margin_pct, 2),
+        "timestamp":  datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "type":       "paperbags",
+        "inputs": {
+            "quantity":      quantity,
+            "selling_price": selling_price,
+            "raw_material":  raw_material,
+            "labor_cost":    labor_cost,
+            "delivery_cost": delivery_cost
+        },
+        "breakdown": [
+            {"label": "Total Revenue",   "value": f"Rs.{selling_price:,.0f}",                                                     "color": "var(--accent2)"},
+            {"label": "Total Cost",      "value": f"Rs.{total_cost:,.0f}",                                                        "color": "var(--danger)"},
+            {"label": "Gross Profit",    "value": f"Rs.{selling_price - total_cost:,.0f}",                                        "color": "var(--accent)"},
+            {"label": "Per Unit Margin", "value": f"Rs.{(selling_price - total_cost) / quantity:.2f}" if quantity > 0 else "N/A", "color": "var(--warn)"}
+        ],
+        "chart": {
+            "margin_pie": {
+                "labels": ["Gross Margin", "Cost"],
+                "values": [round(gross_margin_pct, 2), round(100 - gross_margin_pct, 2)]
+            },
+            "cost_breakdown": {
+                "labels": ["Raw Material", "Labour", "Delivery"],
+                "values": [raw_material, labor_cost, delivery_cost]
+            },
+            "trend": {"labels": labels, "values": values}
+        }
+    }
+
+    prediction_store["paperbags"].append(result)
+    return jsonify(result)
+
+# =====================================================
+# STATS API
+# =====================================================
+
+@app.route("/api/stats")
+def api_stats():
+    solar = prediction_store["solar"]
+    paper = prediction_store["paperbags"]
+
+    avg_solar = round(sum(r["prediction"] for r in solar) / len(solar), 2) if solar else 0
+    avg_paper = round(sum(r["prediction"] for r in paper) / len(paper), 2) if paper else 0
+
+    return jsonify({
+        "predictions_count":   len(solar) + len(paper),
+        "solar_records_count": len(solar),
+        "paper_records_count": len(paper),
+        "avg_solar_margin":    avg_solar,
+        "avg_paper_margin":    avg_paper,
+        "last_updated":        datetime.now().strftime("%Y-%m-%d %H:%M")
+    })
+
+# =====================================================
+# PREDICTIONS API
+# =====================================================
+
+@app.route("/api/predictions")
+def api_predictions():
+    limit = int(request.args.get("limit", 10))
+
+    solar_tagged = [{**r, "business_type": "solar"}     for r in prediction_store["solar"]]
+    paper_tagged = [{**r, "business_type": "paperbags"} for r in prediction_store["paperbags"]]
+
+    all_preds = solar_tagged + paper_tagged
+    all_preds.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+    return jsonify({"predictions": all_preds[:limit], "total": len(all_preds)})
+
+# =====================================================
+# DEALER API — Add dealer + send verification email
+# =====================================================
+
+@app.route("/api/dealers/add", methods=["POST"])
+def add_dealer():
+    data = request.get_json()
+
+    required = ["name", "business_type", "phone", "email", "city", "address", "state"]
+    for field in required:
+        if not data.get(field):
+            return jsonify({"error": f"Missing field: {field}"}), 400
+
+    if dealers_collection.find_one({"email": data["email"]}):
+        return jsonify({"error": "A dealer with this email already exists."}), 400
+
+    token = secrets.token_urlsafe(32)
+
+    dealer = {
+        "name":           data["name"],
+        "business_type":  data["business_type"].lower(),
+        "phone":          data["phone"],
+        "email":          data["email"],
+        "city":           data["city"],
+        "state":          data["state"],
+        "address":        data["address"],
+        "email_verified": False,
+        "verify_token":   token,
+        "created_at":     datetime.utcnow()
+    }
+
+    dealers_collection.insert_one(dealer)
+    sent = send_verification_email(data["email"], data["name"], token)
+
+    if sent:
+        return jsonify({"message": f"Dealer added! Verification email sent to {data['email']}"}), 201
+    else:
+        return jsonify({"message": "Dealer added but email failed. Check GMAIL_USER and GMAIL_PASSWORD."}), 201
+
+# =====================================================
+# DEALER API — Email verification link
+# =====================================================
+
+@app.route("/verify-email")
+def verify_email():
+    token = request.args.get("token", "")
+
+    if not token:
+        return "<h2>Invalid verification link.</h2>", 400
+
+    dealer = dealers_collection.find_one({"verify_token": token})
+
+    if not dealer:
+        return "<h2>Link is invalid or already used.</h2>", 404
+
+    if dealer.get("email_verified"):
+        return """
+        <html><body style='font-family:Arial;text-align:center;padding:60px'>
+        <h2 style='color:#00c853'>Already verified!</h2>
+        <p>Your dealer profile is active on SolarBag.</p>
+        </body></html>
+        """
+
+    dealers_collection.update_one(
+        {"verify_token": token},
+        {"$set": {"email_verified": True, "verify_token": None}}
+    )
+
+    return """
+    <html>
+    <body style='font-family:Arial;text-align:center;padding:60px;background:#f4f6f8'>
+      <div style='max-width:480px;margin:auto;background:white;padding:40px;border-radius:12px;
+                  box-shadow:0 5px 15px rgba(0,0,0,0.1)'>
+        <h2 style='color:#f5a623'>SolarBag</h2>
+        <h3 style='color:#00c853'>Email Verified Successfully!</h3>
+        <p>Your dealer profile is now <strong>active</strong> and visible to customers.</p>
+        <a href='/' style='display:inline-block;margin-top:20px;background:#f5a623;color:#000;
+                           padding:10px 24px;border-radius:8px;font-weight:bold;text-decoration:none'>
+          Go to Dashboard
+        </a>
+      </div>
+    </body>
+    </html>
+    """
+
+# =====================================================
+# DEALER API — Get verified dealers by business type
+# =====================================================
+
+@app.route("/api/dealers", methods=["GET"])
+def get_dealers():
+    business_type = request.args.get("type", "").strip()
+
+    if not business_type:
+        return jsonify({"error": "Please provide a business type"}), 400
+
+    query = {
+        "business_type":  {"$regex": business_type, "$options": "i"},
+        "email_verified": True   # only show verified dealers
+    }
+
+    dealers = list(dealers_collection.find(query, {"_id": 0, "verify_token": 0}))
+
+    if not dealers:
+        return jsonify({
+            "dealers": [],
+            "message": f"No verified dealers found for '{business_type}'"
+        }), 200
+
+    return jsonify({"dealers": dealers, "count": len(dealers)}), 200
+
+# =====================================================
+# DEALER API — Resend verification email
+# =====================================================
+
+@app.route("/api/dealers/resend-verification", methods=["POST"])
+def resend_verification():
+    data  = request.get_json()
+    email = data.get("email", "").strip()
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    dealer = dealers_collection.find_one({"email": email})
+
+    if not dealer:
+        return jsonify({"error": "No dealer found with this email"}), 404
+
+    if dealer.get("email_verified"):
+        return jsonify({"message": "Email is already verified"}), 200
+
+    token = secrets.token_urlsafe(32)
+    dealers_collection.update_one({"email": email}, {"$set": {"verify_token": token}})
+
+    sent = send_verification_email(email, dealer["name"], token)
+
+    if sent:
+        return jsonify({"message": "Verification email resent!"}), 200
+    else:
+        return jsonify({"error": "Failed to send. Check Gmail config in app.py."}), 500
+
+# =====================================================
+# HEALTH CHECK
+# =====================================================
 
 @app.route("/health")
 def health():
-    return jsonify({"status":"running","mongodb_connected": mongo_client is not None})
-
-@app.route("/excel-data")
-def excel_data():
-    try:
-        df = pd.read_excel("data.xlsx")
-
-        return jsonify(df.to_dict(orient="records"))
-
-    except Exception as e:
-        return jsonify({"error": str(e)})
-    
-@app.route("/profit-data")
-def profit_data():
-    total = predictions_collection.count_documents({})
-    return jsonify({"total_profit": total * 3800})
-
-@app.route("/orders-data")
-def orders_data():
-    orders = paper_data_collection.count_documents({})
-    return jsonify({"orders": orders})
-
-@app.route("/model-info")
-def model_info():
-    return jsonify({"version": "2.1"})
-
-@app.route("/inventory-data")
-def inventory_data():
-    return jsonify({"waste": "-18%"})
-
-@app.route("/leads")
-def leads():
-
-    enquiries = db.enquiries.find().sort("time",-1)
-
-    return render_template(
-        "leads.html",
-        enquiries=enquiries
-    )
-    
-@app.route("/submit_enquiry", methods=["POST"])
-def submit_enquiry():
-    enquiry = {
-        "name": request.form["first_name"] + " " + request.form["last_name"],
-        "email": request.form["email"],
-        "phone": request.form["phone"],
-        "enquiry_type": request.form["enquiry_type"],
-        "company": request.form["company"],
-        "message": request.form["message"],
-        "status": "New Lead",
-        "time": datetime.now()
-    }
-
-    db.enquiries.insert_one(enquiry)
-
-    return redirect("/contact")
-# =====================================================
-# MONGODB DATA API
-# =====================================================
-
-@app.route("/api/predictions", methods=["GET"])
-def get_predictions():
-    if predictions_collection is None:
-        return jsonify({"error": "MongoDB not connected"}), 503
-    try:
-        limit = request.args.get("limit", 50, type=int)
-        predictions = list(predictions_collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(limit))
-        return jsonify({"predictions": predictions, "count": len(predictions)})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/solar-data", methods=["GET"])
-def get_solar_data():
-    if solar_data_collection is None:
-        return jsonify({"error": "MongoDB not connected"}), 503
-    try:
-        limit = request.args.get("limit", 50, type=int)
-        data = list(solar_data_collection.find({}, {"_id": 0}).sort("created_at", -1).limit(limit))
-        return jsonify({"data": data, "count": len(data)})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/paper-data", methods=["GET"])
-def get_paper_data():
-    if paper_data_collection is None:
-        return jsonify({"error": "MongoDB not connected"}), 503
-    try:
-        limit = request.args.get("limit", 50, type=int)
-        data = list(paper_data_collection.find({}, {"_id": 0}).sort("created_at", -1).limit(limit))
-        return jsonify({"data": data, "count": len(data)})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/stats", methods=["GET"])
-def get_stats():
-    if db is None:
-        return jsonify({"error": "MongoDB not connected"}), 503
-    try:
-        stats = {
-            "predictions_count": predictions_collection.count_documents({}),
-            "solar_records_count": solar_data_collection.count_documents({}),
-            "paper_records_count": paper_data_collection.count_documents({})
-        }
-        return jsonify(stats)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# =====================================================
-# PREDICTION API
-# =====================================================
-
+    return jsonify({"status": "running"})
 
 # =====================================================
 # ERROR HANDLERS
@@ -395,14 +633,5 @@ def method_not_allowed(e):
 # RUN SERVER
 # =====================================================
 
-# app = Flask(__name__)
-# app.config['TEMPLATES_AUTO_RELOAD'] = True
-
-# if __name__ == "__main__":
-#     app.run(debug=True)
-    
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
-    
-if __name__ == "__main__":
-    app.run(debug=True, use_reloader=True)
+    app.run(debug=True, port=5000)
