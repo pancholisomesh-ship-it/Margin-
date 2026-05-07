@@ -317,10 +317,16 @@ input::placeholder { color: #3e3d5a; }
       <div class="topbar-sub">AI-powered gross margin forecasting</div>
     </div>
   </div>
-  <a href="/dashboard" class="btn-back">
-    <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-    Dashboard
-  </a>
+  <div style="display: flex; gap: 0.75rem;">
+    <button class="btn-back" onclick="startNewUser()" style="background: rgba(255,107,138,0.1); border-color: rgba(255,107,138,0.25); color: var(--danger);" title="Clear current data and start fresh for a new user">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      New User
+    </button>
+    <a href="/dashboard" class="btn-back">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Dashboard
+    </a>
+  </div>
 </div>
 
 <!-- MAIN LAYOUT -->
@@ -637,8 +643,21 @@ function renderCharts(chartData) {
         scales: {
           y: {
             beginAtZero: true,
+            max: 2000000,
             grid:  { color: 'rgba(255,255,255,0.08)' },
-            ticks: { color: '#7b7a96', font: { size: 10 } }
+            ticks: { 
+              color: '#7b7a96', 
+              font: { size: 10 },
+              callback: function(value) {
+                if (value >= 1000000) {
+                  return '₹' + (value / 1000000).toFixed(1) + 'M';
+                } else if (value >= 100000) {
+                  return '₹' + (value / 100000).toFixed(0) + 'L';
+                } else {
+                  return '₹' + value.toLocaleString();
+                }
+              }
+            }
           },
           x: {
             grid:  { display: false },
@@ -696,6 +715,27 @@ function clearAll() {
     entries = [];
     saveEntries();
     renderEntries();
+  }
+}
+
+/* ===================== NEW USER ===================== */
+async function startNewUser() {
+  if (confirm('Start a new user session? This will clear all previous data and reset the dashboard.')) {
+    // Clear localStorage
+    localStorage.removeItem('sb_entries');
+    entries = [];
+    
+    // Clear session on server
+    try {
+      await fetch('/api/clear-session', { method: 'POST' });
+    } catch (e) {
+      console.log('Session clear request made');
+    }
+    
+    // Refresh page to show fresh dashboard
+    setTimeout(() => {
+      window.location.href = '/prediction';
+    }, 500);
   }
 }
 

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from pymongo import MongoClient
@@ -17,6 +17,7 @@ CORS(app)
 
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+app.secret_key = "your_super_secret_key_here_change_in_production"  # ← Change this in production
 
 # =====================================================
 # MONGODB — dealers only
@@ -267,8 +268,11 @@ def eco():
 
 @app.route("/dashboard")
 def dashboard():
-    solar = prediction_store["solar"]
-    paper = prediction_store["paperbags"]
+    # Get session-specific predictions, fallback to global store
+    solar = session.get('solar_predictions', [])
+    paper = session.get('paperbags_predictions', [])
+    
+    # Only show current session data, not all historical data
     return render_template("dashboard.html",
         solar_latest  = solar[-1] if solar else None,
         solar_runs    = len(solar),
@@ -279,13 +283,26 @@ def dashboard():
     )
 
 # =====================================================
+# CLEAR SESSION / NEW USER
+# =====================================================
+
+@app.route("/api/clear-session", methods=["POST"])
+def clear_session():
+    """Clear the current user's session data to start fresh"""
+    session['solar_predictions'] = []
+    session['paperbags_predictions'] = []
+    session.modified = True
+    return jsonify({"status": "success", "message": "Session cleared. Ready for new user."})
+
+# =====================================================
 # DASHBOARD JSON API
 # =====================================================
 
 @app.route("/api/dashboard")
 def dashboard_api():
-    solar = prediction_store["solar"]
-    paper = prediction_store["paperbags"]
+    # Get session-specific predictions instead of global store
+    solar = session.get('solar_predictions', [])
+    paper = session.get('paperbags_predictions', [])
     return jsonify({
         "solar":     {"latest": solar[-1] if solar else None, "total_runs": len(solar), "history": solar[-10:]},
         "paperbags": {"latest": paper[-1] if paper else None, "total_runs": len(paper), "history": paper[-10:]}
@@ -344,6 +361,13 @@ def predict_solar():
         }
     }
 
+    # Store in session instead of global store
+    if 'solar_predictions' not in session:
+        session['solar_predictions'] = []
+    session['solar_predictions'].append(result)
+    session.modified = True
+    
+    # Also keep in global store for backward compatibility
     prediction_store["solar"].append(result)
     return jsonify(result)
 
@@ -428,6 +452,13 @@ def predict_paperbags():
         }
     }
 
+    # Store in session instead of global store
+    if 'paperbags_predictions' not in session:
+        session['paperbags_predictions'] = []
+    session['paperbags_predictions'].append(result)
+    session.modified = True
+    
+    # Also keep in global store for backward compatibility
     prediction_store["paperbags"].append(result)
     return jsonify(result)
 
@@ -437,8 +468,9 @@ def predict_paperbags():
 
 @app.route("/api/stats")
 def api_stats():
-    solar = prediction_store["solar"]
-    paper = prediction_store["paperbags"]
+    # Get session-specific predictions
+    solar = session.get('solar_predictions', [])
+    paper = session.get('paperbags_predictions', [])
 
     avg_solar = round(sum(r["prediction"] for r in solar) / len(solar), 2) if solar else 0
     avg_paper = round(sum(r["prediction"] for r in paper) / len(paper), 2) if paper else 0
@@ -460,8 +492,8 @@ def api_stats():
 def api_predictions():
     limit = int(request.args.get("limit", 10))
 
-    solar_tagged = [{**r, "business_type": "solar"}     for r in prediction_store["solar"]]
-    paper_tagged = [{**r, "business_type": "paperbags"} for r in prediction_store["paperbags"]]
+    solar_tagged = [{**r, "business_type": "solar"}     for r in session.get('solar_predictions', [])]
+    paper_tagged = [{**r, "business_type": "paperbags"} for r in session.get('paperbags_predictions', [])]
 
     all_preds = solar_tagged + paper_tagged
     all_preds.sort(key=lambda x: x.get("timestamp", ""), reverse=True)

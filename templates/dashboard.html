@@ -264,6 +264,11 @@ body {
 
   <div class="sidebar-spacer"></div>
 
+  <button onclick="startNewUser()" class="nav-btn" style="color: var(--danger); margin-bottom: 8px;">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    New User
+  </button>
+
   <a href="/prediction" class="nav-btn cta">
     <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
     New Prediction
@@ -378,45 +383,58 @@ function renderTrendChart(canvasId, history, color, existingInst) {
   if (existingInst) existingInst.destroy();
   if (!history || history.length === 0) return null;
 
+  // Ensure canvas exists
+  const canvasElement = document.getElementById(canvasId);
+  if (!canvasElement) {
+    console.warn(`Canvas element ${canvasId} not found`);
+    return null;
+  }
+
   const labels = history.map(h => {
     const d = new Date(h.timestamp.replace(' ','T'));
     return d.toLocaleDateString('en-IN', { month:'short', day:'numeric' });
   });
   const values = history.map(h => h.prediction);
 
-  return new Chart(document.getElementById(canvasId).getContext('2d'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        borderColor: color,
-        backgroundColor: color + '18',
-        borderWidth: 2,
-        pointBackgroundColor: color,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        fill: true,
-        tension: 0.4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: {
-          beginAtZero: false,
-          grid:  { color: 'rgba(255,255,255,0.06)' },
-          ticks: { color: '#7b7a96', font: { size: 10 }, callback: v => v + '%' }
-        },
-        x: {
-          grid:  { display: false },
-          ticks: { color: '#7b7a96', font: { size: 10 } }
+  try {
+    const ctx = canvasElement.getContext('2d');
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor: color,
+          backgroundColor: color + '18',
+          borderWidth: 2,
+          pointBackgroundColor: color,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            beginAtZero: false,
+            grid:  { color: 'rgba(255,255,255,0.06)' },
+            ticks: { color: '#7b7a96', font: { size: 10 }, callback: v => v + '%' }
+          },
+          x: {
+            grid:  { display: false },
+            ticks: { color: '#7b7a96', font: { size: 10 } }
+          }
         }
       }
-    }
-  });
+    });
+  } catch (err) {
+    console.error(`Failed to render chart ${canvasId}:`, err);
+    return null;
+  }
 }
 
 // ── Render functions ──────────────────────────────────────────────────────
@@ -481,6 +499,22 @@ function renderLatestBreakdown(latest, type) {
     </div>`;
 }
 
+// ── New User / Clear Session ────────────────────────────────────────────────
+async function startNewUser() {
+  if (confirm('Start a new user session? This will clear all previous data and reset the dashboard.')) {
+    try {
+      await fetch('/api/clear-session', { method: 'POST' });
+      // Reload to show fresh dashboard
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 300);
+    } catch (e) {
+      console.log('Session cleared');
+      window.location.href = '/dashboard';
+    }
+  }
+}
+
 // ── Load data from backend ────────────────────────────────────────────────
 let allPredictions = [];
 
@@ -496,9 +530,11 @@ async function loadData() {
 
     renderStats(stats);
 
-    // Render trend charts
-    solarChartInst = renderTrendChart('solarChart', dash.solar.history, '#ffc600', solarChartInst);
-    paperChartInst = renderTrendChart('paperChart', dash.paperbags.history, '#4ff8c8', paperChartInst);
+    // Render trend charts with a small delay to ensure DOM is ready
+    setTimeout(() => {
+      solarChartInst = renderTrendChart('solarChart', dash.solar.history, '#ffc600', solarChartInst);
+      paperChartInst = renderTrendChart('paperChart', dash.paperbags.history, '#4ff8c8', paperChartInst);
+    }, 100);
 
     // Merge and sort all predictions
     const solarTagged = (dash.solar.history || []).map(r => ({...r, business_type:'solar'}));
@@ -543,7 +579,16 @@ function showBreakdown(index) {
 }
 
 // ── Check if we just came from a prediction (show toast) ──────────────────
-window.onload = async () => {
+window.addEventListener('load', async () => {
+  // Ensure DOM is fully ready
+  await new Promise(resolve => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', resolve);
+    } else {
+      resolve();
+    }
+  });
+  
   await loadData();
 
   // If referrer is the prediction page, show toast
@@ -551,7 +596,7 @@ window.onload = async () => {
     showToast('✅ Prediction saved — dashboard updated!');
     document.getElementById('new-badge-title').innerHTML = '<span class="new-badge">UPDATED</span>';
   }
-};
+});
 </script>
 </body>
 </html>
