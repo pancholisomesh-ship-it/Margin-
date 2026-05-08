@@ -315,6 +315,7 @@ def dashboard_api():
 @app.route("/predict_solar", methods=["POST"])
 def predict_solar():
     data = request.get_json()
+    customer_name = data.get("customer_name", "").strip() or "Unnamed"
 
     inverter_cost  = float(data.get("inverter_cost", 0))
     install_cost   = float(data.get("install_cost", 0))
@@ -335,6 +336,7 @@ def predict_solar():
         "prediction": round(gross_margin_pct, 2),
         "timestamp":  datetime.now().strftime("%Y-%m-%d %H:%M"),
         "type":       "solar",
+        "customer_name": customer_name,
         "inputs": {
             "inverter_cost":  inverter_cost,
             "install_cost":   install_cost,
@@ -407,6 +409,7 @@ def predict_solar_energy():
 @app.route("/predict_paperbags", methods=["POST"])
 def predict_paperbags():
     data = request.get_json()
+    customer_name = data.get("customer_name", "").strip() or "Unnamed"
 
     quantity      = float(data.get("quantity", 0))
     selling_price = float(data.get("selling_price", 0))
@@ -426,6 +429,7 @@ def predict_paperbags():
         "prediction": round(gross_margin_pct, 2),
         "timestamp":  datetime.now().strftime("%Y-%m-%d %H:%M"),
         "type":       "paperbags",
+        "customer_name": customer_name,
         "inputs": {
             "quantity":      quantity,
             "selling_price": selling_price,

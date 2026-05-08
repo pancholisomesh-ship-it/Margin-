@@ -179,6 +179,7 @@ body {
 .pred-type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 .pred-type.solar { color: var(--accent4); }
 .pred-type.paper { color: var(--accent2); }
+.pred-name { font-size: 12px; color: var(--muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pred-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .pred-margin { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; flex-shrink: 0; }
 .pred-margin.high  { color: var(--accent2); }
@@ -458,11 +459,13 @@ function renderPredList(predictions) {
     const type   = p.business_type || p.type || 'solar';
     const margin = p.prediction || 0;
     const isNew  = i === 0;
+    const nameLine = p.customer_name ? `<div class="pred-name">${p.customer_name}</div>` : '';
     return `
       <div class="pred-item" onclick="showBreakdown(${i})">
         <div class="pred-dot ${type}">${type === 'solar' ? '☀️' : '📄'}</div>
         <div class="pred-info">
           <div class="pred-type ${type}">${type === 'solar' ? 'Solar Business' : 'Paper Bags'}${isNew ? '<span class="new-badge">NEW</span>' : ''}</div>
+          ${nameLine}
           <div class="pred-time">${timeAgo(p.timestamp)}</div>
         </div>
         <div class="pred-margin ${marginClass(margin)}">${margin.toFixed(1)}%</div>
@@ -481,6 +484,9 @@ function renderLatestBreakdown(latest, type) {
 
   const typeName = (type === 'solar') ? '☀️ Solar' : '📄 Paper Bags';
   title.textContent = `Latest · ${typeName}`;
+  if (latest.customer_name) {
+    title.textContent += ` · ${latest.customer_name}`;
+  }
 
   const breakdown = latest.breakdown || [];
   el.innerHTML = `

@@ -173,6 +173,12 @@ footer p { font-size: 0.8rem; color: rgba(247,240,230,0.4); }
 
 /* ECO MODAL */
 .eco-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 2rem; }
+.eco-preview-card { background: rgba(45,106,79,0.12); border: 1px solid rgba(82,183,136,0.2); border-radius: 14px; padding: 1.4rem 1.25rem; margin-bottom: 1.25rem; display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: start; }
+.eco-preview-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(255,255,255,0.65); margin-bottom: 0.35rem; }
+.eco-preview-name { font-size: 1.15rem; font-weight: 700; color: var(--sand); line-height: 1.2; }
+.eco-preview-margin { font-size: 2rem; font-weight: 800; color: var(--leaf-light); text-align: right; }
+.eco-preview-type { font-size: 0.82rem; color: var(--mist); text-align: right; margin-top: 0.25rem; }
+.eco-preview-detail { grid-column: 1 / -1; margin-top: 0.85rem; font-size: 0.88rem; color: var(--mist); line-height: 1.6; }
 .eco-card { background: rgba(45,106,79,0.15); border: 1px solid rgba(82,183,136,0.2); border-radius: 10px; padding: 1.4rem 1rem; text-align: center; }
 .eco-num   { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--leaf-light); line-height: 1; margin-bottom: 0.4rem; }
 .eco-label { font-size: 0.72rem; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase; }
@@ -257,6 +263,22 @@ footer p { font-size: 0.8rem; color: rgba(247,240,230,0.4); }
     <div class="stat-item"><div class="big" data-target="365">0</div><div class="desc">Days of Data</div></div>
   </div>
 
+  <!-- LATEST PREDICTION PREVIEW -->
+  <section class="section reveal" id="prediction-summary">
+    <div class="section-head">
+      <div class="eyebrow">Recent prediction</div>
+      <h2>Last forecast for <span id="home-pred-name">your business</span></h2>
+    </div>
+    <div class="cards-grid">
+      <div class="card">
+        <span class="card-icon">📈</span>
+        <h3 id="home-pred-type">No prediction yet</h3>
+        <p id="home-pred-margin" style="margin-top:1rem;font-size:2.2rem;line-height:1.1;">—</p>
+        <p id="home-pred-detail" style="margin-top:1rem;color:rgba(232,221,208,0.75);">Run a prediction to see the latest name, margin, and details here.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- CARDS -->
   <section class="section" id="about">
     <div class="section-head reveal">
@@ -338,6 +360,17 @@ footer p { font-size: 0.8rem; color: rgba(247,240,230,0.4); }
       <div class="modal-eyebrow eco">Sustainability Module</div>
       <div class="modal-title">Eco Analytics</div>
       <div class="modal-desc">Real-time sustainability metrics tracking carbon offset from solar deployments and eco-bag adoption. Every unit sold contributes to measurable environmental impact.</div>
+      <div class="eco-preview-card" id="eco-prediction-card">
+        <div>
+          <div class="eco-preview-label">Latest prediction for</div>
+          <div class="eco-preview-name" id="eco-pred-name">No user yet</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="eco-preview-margin" id="eco-pred-margin">—</div>
+          <div class="eco-preview-type" id="eco-pred-type">No prediction available</div>
+        </div>
+        <div class="eco-preview-detail" id="eco-pred-detail">Run a prediction first, then open Eco Analytics to view name and margin details here.</div>
+      </div>
       <div class="eco-grid">
         <div class="eco-card"><div class="eco-num" id="co2Counter">0</div><div class="eco-label">Tonnes CO₂ Offset</div></div>
         <div class="eco-card"><div class="eco-num" id="bagCounter">0</div><div class="eco-label">Eco Bags Adopted</div></div>
@@ -452,6 +485,7 @@ footer p { font-size: 0.8rem; color: rgba(247,240,230,0.4); }
     /* ── Modal Open/Close ── */
     function openEco(e) {
       if (e) e.preventDefault();
+      renderEcoPredictionSummary();
       document.getElementById('ecoModal').classList.add('open');
       document.body.style.overflow = 'hidden';
       setTimeout(() => { animateEcoCounters(); animateEcoBars(); }, 200);
@@ -596,6 +630,51 @@ footer p { font-size: 0.8rem; color: rgba(247,240,230,0.4); }
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') { closeModal('ecoModal'); closeModal('contactModal'); }
     });
+
+    /* ── Home page prediction summary ── */
+    function renderHomePredictionSummary() {
+      const latest = JSON.parse(localStorage.getItem('sb_entries') || '[]')[0] || null;
+      const nameEl   = document.getElementById('home-pred-name');
+      const typeEl   = document.getElementById('home-pred-type');
+      const marginEl = document.getElementById('home-pred-margin');
+      const detailEl = document.getElementById('home-pred-detail');
+
+      if (!latest) {
+        nameEl.textContent   = 'your business';
+        typeEl.textContent   = 'No prediction yet';
+        marginEl.textContent = '—';
+        detailEl.textContent = 'Run a prediction to see the latest name, margin, and details here.';
+        return;
+      }
+
+      nameEl.textContent   = latest.customer_name || 'Unnamed';
+      typeEl.textContent   = latest.type === 'solar' ? 'Solar gross margin forecast' : 'Paper bags gross margin forecast';
+      marginEl.textContent = `${latest.margin.toFixed(2)}%`;
+      detailEl.textContent = latest.details;
+    }
+
+    function renderEcoPredictionSummary() {
+      const latest = JSON.parse(localStorage.getItem('sb_entries') || '[]')[0] || null;
+      const nameEl   = document.getElementById('eco-pred-name');
+      const typeEl   = document.getElementById('eco-pred-type');
+      const marginEl = document.getElementById('eco-pred-margin');
+      const detailEl = document.getElementById('eco-pred-detail');
+
+      if (!latest) {
+        nameEl.textContent   = 'No user yet';
+        typeEl.textContent   = 'No prediction available';
+        marginEl.textContent = '—';
+        detailEl.textContent = 'Run a prediction first, then open Eco Analytics to view name and margin details here.';
+        return;
+      }
+
+      nameEl.textContent   = latest.customer_name || 'Unnamed';
+      typeEl.textContent   = latest.type === 'solar' ? 'Solar business margin' : 'Paper bags margin';
+      marginEl.textContent = `${latest.margin.toFixed(2)}%`;
+      detailEl.textContent = latest.details;
+    }
+
+    window.addEventListener('load', renderHomePredictionSummary);
   </script>
 </body>
 </html>

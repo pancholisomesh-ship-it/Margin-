@@ -350,6 +350,12 @@ input::placeholder { color: #3e3d5a; }
     <!-- Solar Form -->
     <div class="form-section active" id="solar">
       <div class="field-grid">
+        <div class="field full">
+          <label>Name / Business</label>
+          <div class="input-wrap">
+            <input type="text" id="s_name" placeholder="e.g. Sharma Solar Co." />
+          </div>
+        </div>
         <div class="field">
           <label>Requirement (kW)</label>
           <div class="input-wrap">
@@ -401,6 +407,12 @@ input::placeholder { color: #3e3d5a; }
     <!-- Paper Form -->
     <div class="form-section" id="paper">
       <div class="field-grid">
+        <div class="field full">
+          <label>Name / Business</label>
+          <div class="input-wrap">
+            <input type="text" id="p_name" placeholder="e.g. Green Bag Ventures" />
+          </div>
+        </div>
         <div class="field">
           <label>Quantity (units)</label>
           <div class="input-wrap">
@@ -743,6 +755,7 @@ async function startNewUser() {
 async function predictSolar() {
   hideResult();
 
+  const customer_name  = document.getElementById('s_name').value.trim();
   const requirement_kw = Number(document.getElementById('s_size').value)     || 0;
   const inverter_cost  = Number(document.getElementById('s_inverter').value) || 0;
   const install_cost   = Number(document.getElementById('s_install').value)  || 0;
@@ -750,6 +763,10 @@ async function predictSolar() {
   const no_of_plates   = Number(document.getElementById('n_plates').value)   || 0;
   const plate_cost     = Number(document.getElementById('s_plates').value)   || 0;
 
+  if (!customer_name) {
+    showError('Please enter a Name or Business for this prediction.');
+    return;
+  }
   if (!selling_price || selling_price <= 0) {
     showError('Please enter a valid Total Pricing greater than 0.');
     return;
@@ -757,7 +774,7 @@ async function predictSolar() {
 
   setLoading('solar-btn-text', 'solar-spinner', true);
 
-  const payload = { requirement_kw, inverter_cost, install_cost, selling_price, no_of_plates, plate_cost };
+  const payload = { customer_name, requirement_kw, inverter_cost, install_cost, selling_price, no_of_plates, plate_cost };
 
   try {
     const res = await fetch('/predict_solar', {
@@ -781,7 +798,8 @@ async function predictSolar() {
       type:      'solar',
       margin:    result.prediction,
       timestamp: result.timestamp,
-      details:   `${requirement_kw} kW • Total ₹${selling_price.toLocaleString()} • ${no_of_plates} plates`
+      customer_name,
+      details:   `${customer_name} • ${requirement_kw} kW • Total ₹${selling_price.toLocaleString()} • ${no_of_plates} plates`
     });
 
     // Redirect to dashboard after 3s
@@ -798,12 +816,17 @@ async function predictSolar() {
 async function predictPaper() {
   hideResult();
 
+  const customer_name = document.getElementById('p_name').value.trim();
   const quantity      = Number(document.getElementById('p_qty').value)   || 0;
   const selling_price = Number(document.getElementById('p_sell').value)  || 0;
   const raw_material  = Number(document.getElementById('p_raw').value)   || 0;
   const labor_cost    = Number(document.getElementById('p_labor').value) || 0;
   const delivery_cost = Number(document.getElementById('p_pack').value)  || 0;
 
+  if (!customer_name) {
+    showError('Please enter a Name or Business for this prediction.');
+    return;
+  }
   if (!selling_price || selling_price <= 0) {
     showError('Please enter a valid Selling Price greater than 0.');
     return;
@@ -811,7 +834,7 @@ async function predictPaper() {
 
   setLoading('paper-btn-text', 'paper-spinner', true);
 
-  const payload = { quantity, selling_price, raw_material, labor_cost, delivery_cost };
+  const payload = { customer_name, quantity, selling_price, raw_material, labor_cost, delivery_cost };
 
   try {
     const res = await fetch('/predict_paperbags', {
@@ -835,7 +858,8 @@ async function predictPaper() {
       type:      'paper',
       margin:    result.prediction,
       timestamp: result.timestamp,
-      details:   `${quantity} units • ₹${selling_price.toLocaleString()}`
+      customer_name,
+      details:   `${customer_name} • ${quantity} units • ₹${selling_price.toLocaleString()}`
     });
 
     // Redirect to dashboard after 3s
