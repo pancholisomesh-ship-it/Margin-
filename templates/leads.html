@@ -5,220 +5,306 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SolarBag – Support & Enquiries</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #090b16;
+      --surface: #111827;
+      --surface-soft: #161b2e;
+      --primary: #fbbf24;
+      --primary-strong: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #cbd5e1;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 28px 70px rgba(15, 23, 42, 0.35);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: radial-gradient(circle at top, rgba(251, 191, 36, 0.16), transparent 28%),
+                  linear-gradient(180deg, #05060d 0%, #090b16 100%);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
 
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: #fff;
-      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 2rem;
     }
 
-    /* ── Trigger button ── */
     .open-btn {
-      background: #f5a623;
-      color: #000;
+      background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+      color: #111827;
       border: none;
-      padding: 12px 28px;
-      font-size: 15px;
-      font-weight: 600;
-      border-radius: 8px;
+      padding: 14px 30px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 14px;
       cursor: pointer;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.02em;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
-    .open-btn:hover { background: #e0941a; }
 
-    /* ── Overlay ── */
+    .open-btn:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+
     .overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.7);
+      background: rgba(3, 7, 18, 0.85);
       z-index: 100;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 1.5rem;
     }
-    .overlay.active { display: flex; }
 
-    /* ── Modal ── */
+    .overlay.active {
+      display: flex;
+    }
+
     .modal {
-      background: #1e1e1e;
-      border-radius: 14px;
-      padding: 32px 28px 28px;
+      background: rgba(17, 24, 39, 0.98);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.25rem 2rem 2rem;
       width: 100%;
-      max-width: 500px;
+      max-width: 520px;
       position: relative;
-      max-height: 85vh;
+      max-height: 88vh;
       overflow-y: auto;
+      box-shadow: var(--shadow);
     }
 
     .close-btn {
       position: absolute;
-      top: 14px; right: 14px;
-      background: #333;
+      top: 18px;
+      right: 18px;
+      background: rgba(255, 255, 255, 0.08);
       border: none;
-      color: #fff;
-      width: 32px; height: 32px;
+      color: var(--text);
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
-      font-size: 16px;
+      font-size: 1rem;
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease;
     }
-    .close-btn:hover { background: #444; }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
 
     .modal h2 {
-      font-size: 18px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 4px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
     }
+
     .modal h3 {
-      font-size: 14px;
+      font-size: 0.95rem;
       font-weight: 500;
-      color: #aaa;
-      margin-bottom: 16px;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
     }
 
     .contact-info {
-      font-size: 14px;
-      color: #ccc;
-      line-height: 1.9;
-      margin-bottom: 20px;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
     }
-    .contact-info span { margin-right: 8px; }
 
-    /* ── Input row ── */
     .input-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
+      display: grid;
+      gap: 0.55rem;
+      margin-bottom: 1rem;
     }
+
     .input-row label {
-      font-size: 14px;
-      color: #ccc;
-      white-space: nowrap;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
+
     .input-row input {
-      flex: 1;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
-      border-radius: 6px;
-      padding: 8px 12px;
-      color: #fff;
-      font-size: 14px;
+      width: 100%;
+      background: #111827;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 0.95rem 1rem;
+      color: var(--text);
+      font-size: 0.95rem;
       outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    .input-row input:focus { border-color: #f5a623; }
+
+    .input-row input:focus {
+      border-color: rgba(251, 191, 36, 0.45);
+      box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.08);
+    }
 
     .hint {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 16px;
-      padding-left: 2px;
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin-bottom: 1.2rem;
+      padding-left: 0.15rem;
     }
 
-    /* ── Show Dealers button ── */
     .show-btn {
-      background: #f5a623;
-      color: #000;
+      background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+      color: #111827;
       border: none;
-      padding: 12px 22px;
-      font-size: 14px;
+      padding: 14px 24px;
+      font-size: 0.95rem;
       font-weight: 700;
-      border-radius: 8px;
+      border-radius: 16px;
       cursor: pointer;
-      letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      letter-spacing: 0.02em;
       width: 100%;
+      display: inline-flex;
+      align-items: center;
       justify-content: center;
+      transition: transform 0.2s ease;
     }
-    .show-btn:hover { background: #e0941a; }
-    .show-btn:disabled { background: #7a5010; color: #333; cursor: not-allowed; }
 
-    /* ── Error ── */
+    .show-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .show-btn:disabled {
+      background: rgba(251, 191, 36, 0.3);
+      color: rgba(17, 24, 39, 0.7);
+      cursor: not-allowed;
+    }
+
     .error-msg {
       display: none;
-      color: #ff6b6b;
-      font-size: 13px;
-      margin-top: 8px;
+      color: #fca5a5;
+      font-size: 0.9rem;
+      margin-top: 1rem;
     }
-    .error-msg.active { display: block; }
 
-    /* ── Results section ── */
-    .results-section { margin-top: 24px; }
+    .error-msg.active {
+      display: block;
+    }
+
+    .results-section {
+      margin-top: 1.75rem;
+    }
 
     .results-header {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 12px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 0.85rem;
       display: none;
     }
-    .results-header.active { display: block; }
+
+    .results-header.active {
+      display: block;
+    }
 
     .dealer-card {
-      background: #252525;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      animation: fadeIn 0.3s ease;
+      background: #111827;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 1.2rem 1.25rem;
+      margin-bottom: 1rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+
+    .dealer-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+    }
 
     .dealer-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 6px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 0.55rem;
     }
+
     .dealer-badge {
-      display: inline-block;
-      background: #2d1f00;
-      color: #f5a623;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 20px;
+      display: inline-flex;
+      background: rgba(251, 191, 36, 0.12);
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
       text-transform: capitalize;
-      margin-bottom: 10px;
+      margin-bottom: 0.85rem;
     }
+
     .dealer-detail {
-      font-size: 13px;
-      color: #aaa;
+      font-size: 0.9rem;
+      color: #cbd5e1;
       display: flex;
       align-items: flex-start;
-      gap: 8px;
-      margin-bottom: 4px;
+      gap: 0.6rem;
+      margin-bottom: 0.6rem;
+      line-height: 1.65;
     }
-    .dealer-detail .icon { flex-shrink: 0; }
+
+    .dealer-detail .icon {
+      flex-shrink: 0;
+      color: #fbbf24;
+      margin-top: 2px;
+    }
 
     .no-results {
       text-align: center;
-      color: #666;
-      font-size: 14px;
-      padding: 24px 0;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      padding: 1.75rem 0;
       display: none;
     }
-    .no-results.active { display: block; }
 
-    /* ── Spinner ── */
+    .no-results.active {
+      display: block;
+    }
+
     .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid #000;
-      border-top-color: transparent;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: var(--primary);
       border-radius: 50%;
-      animation: spin 0.6s linear infinite;
+      animation: spin 0.7s linear infinite;
       display: none;
     }
-    .spinner.active { display: block; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner.active {
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 1rem;
+      }
+
+      .modal {
+        padding: 1.75rem 1.5rem 1.5rem;
+      }
+    }
   </style>
 </head>
 <body>

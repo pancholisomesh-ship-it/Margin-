@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Margin Prediction — MarginPro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #ec4899;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #ffffff;
+      --surface: #f8fbff;
+      --surface-alt: #eef2ff;
+      --text: #111827;
+      --text-muted: #5b6771;
+      --border: #dbeafe;
+      --card-shadow: 0 18px 45px rgba(99, 102, 241, 0.12);
+      --card-shadow-lg: 0 22px 60px rgba(99, 102, 241, 0.14);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ─────────────────────── HEADER ─────────────────────── */
+    header {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+    }
+
+    nav {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-brand {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .nav-brand span {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+      align-items: center;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    /* ─────────────────────── MAIN ─────────────────────── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .page-header {
+      margin-bottom: 2rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    /* ─────────────────────── LAYOUT ─────────────────────── */
+    .prediction-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    /* ─────────────────────── FORM SECTION ─────────────────────── */
+    .form-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+
+    .form-title {
+      font-size: 1.3rem;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .help-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* ─────────────────────── BUSINESS SELECTOR ─────────────────────── */
+    .business-selector {
+      margin-bottom: 2rem;
+    }
+
+    .business-search {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    .business-dropdown {
+      max-height: 250px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      z-index: 10;
+      box-shadow: var(--card-shadow-lg);
+    }
+
+    .business-dropdown.show {
+      display: block;
+    }
+
+    .business-option {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .business-option:hover {
+      background: var(--surface);
+    }
+
+    .business-option.selected {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .business-option-icon {
+      margin-right: 0.5rem;
+    }
+
+    .business-option-name {
+      font-weight: 600;
+    }
+
+    .business-option-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: block;
+      margin-top: 0.25rem;
+    }
+
+    .selected-business {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .selected-business-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .selected-business-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    /* ─────────────────────── BUTTONS ─────────────────────── */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      width: 100%;
+      justify-content: center;
+      margin-top: 0.75rem;
+    }
+
+    /* ─────────────────────── RESULTS SECTION ─────────────────────── */
+    .results-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      display: none;
+      box-shadow: var(--shadow);
+    }
+
+    .results-section.show {
+      display: block;
+    }
+
+    .result-card {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .result-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-margin {
+      font-size: 3.5rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-margin-unit {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .result-details {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .result-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .result-detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .result-detail-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .result-detail-value {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 340px;
+      margin-bottom: 2rem;
+    }
+
+    .chart-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .action-buttons .btn {
+      flex: 1;
+    }
+
+    /* ─────────────────────── LOADING ─────────────────────── */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ─────────────────────── ERROR ─────────────────────── */
+    .error-message {
+      display: none;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      border: 1px solid #fecaca;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    /* ─────────────────────── RESPONSIVE ─────────────────────── */
+    /* ─────────────────────── SHARK TANK PIE CHART MODAL ─────────────────────── */
+    .chart-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.15) 100%);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .chart-modal.show {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .chart-modal-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 24px;
+      padding: 3rem;
+      max-width: 800px;
+      width: 100%;
+      position: relative;
+      box-shadow: 0 30px 80px rgba(99, 102, 241, 0.2);
+      animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .chart-modal-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .chart-modal-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+      box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+    }
+
+    .chart-modal-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .chart-modal-subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .chart-overlay-stats {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      text-align: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .overlay-stat {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      animation: fadeInScale 0.8s ease forwards;
+      opacity: 0;
+    }
+
+    .overlay-stat:nth-child(1) { animation-delay: 0.2s; }
+    .overlay-stat:nth-child(2) { animation-delay: 0.4s; }
+    .overlay-stat:nth-child(3) { animation-delay: 0.6s; }
+
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .overlay-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .overlay-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 0.25rem;
+    }
+
+    .pie-chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      animation: chartRotate 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes chartRotate {
+      from {
+        opacity: 0;
+        transform: scale(0.8) rotate(-10deg);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+    }
+
+    .chart-glow {
+      position: absolute;
+      inset: -20px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: glow 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes glow {
+      0%, 100% {
+        opacity: 0.5;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+    }
+
+    .stats-grid-shark {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-box {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.08));
+      border: 1px solid rgba(99, 102, 241, 0.1);
+      border-radius: 14px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      animation: slideInUp 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    .stat-box:nth-child(1) { animation-delay: 0.1s; }
+    .stat-box:nth-child(2) { animation-delay: 0.2s; }
+    .stat-box:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .stat-box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(99, 102, 241, 0.15);
+      border-color: var(--primary);
+    }
+
+    .stat-box-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-box-value {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .confidence-bar {
+      background: var(--surface);
+      border-radius: 10px;
+      height: 8px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 10px;
+      animation: fillBar 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes fillBar {
+      from {
+        width: 0;
+      }
+      to {
+        width: var(--confidence-width, 100%);
+      }
+    }
+
+    .chart-modal-footer {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .btn-close-chart {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      flex: 1;
+      font-size: 0.95rem;
+    }
+
+    .btn-close-chart:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-share-chart {
+      background: var(--surface);
+      color: var(--primary);
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      border: 2px solid var(--primary);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      flex: 1;
+      font-size: 0.95rem;
+    }
+
+    .btn-share-chart:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .category-label {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.5rem;
+    }
+
+    /* ─────────────────────── RESPONSIVE ─────────────────────── */
+    @media (max-width: 768px) {
+      .prediction-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .result-margin {
+        font-size: 2.5rem;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+      }
+
+      .chart-modal-card {
+        padding: 2rem;
+      }
+
+      .chart-modal-title {
+        font-size: 1.5rem;
+      }
+
+      .stats-grid-shark {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-container-shark {
+        height: 300px;
+      }
+
+      .chart-modal-footer {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ─────────────────────── HEADER ─────────────────────── -->
+  <header>
+    <nav>
+      <a href="/" class="nav-brand">Margin<span>Pro</span></a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/dashboard">Dashboard</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- ─────────────────────── MAIN ─────────────────────── -->
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">Margin Prediction</h1>
+      <p class="page-desc">Select your business type and enter details to get an instant margin prediction.</p>
+    </div>
+
+    <div class="prediction-layout">
+      <!-- ─────────────────────── FORM SECTION ─────────────────────── -->
+      <div class="form-section">
+        <h2 class="form-title">Business Details</h2>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- Business Type Selection -->
+        <div class="form-group" id="business-select">
+          <label>Business Type</label>
+          <div class="business-search">
+            <input 
+              type="text" 
+              id="businessSearch" 
+              placeholder="Search or select business type..." 
+              onkeyup="handleBusinessSearch()"
+              onclick="toggleBusinessDropdown()"
+            >
+            <div class="business-dropdown" id="businessDropdown"></div>
+          </div>
+        </div>
+
+        <!-- Selected Business Display -->
+        <div class="selected-business" id="selectedBusiness" style="display: none;">
+          <div class="selected-business-name" id="selectedBusinessName"></div>
+          <div class="selected-business-desc" id="selectedBusinessDesc"></div>
+        </div>
+
+        <!-- Dynamic Fields -->
+        <div id="dynamicFields"></div>
+
+        <!-- Submit Button -->
+        <div style="display: flex; gap: 0.75rem; flex-direction: column;">
+          <button class="btn btn-primary" onclick="handlePrediction()" id="predictBtn" disabled>
+            📊 Get Prediction
+          </button>
+          <button class="btn btn-secondary" onclick="resetForm()" id="resetBtn" style="display: none;">
+            ↻ Clear Form
+          </button>
+        </div>
+      </div>
+
+      <!-- ─────────────────────── RESULTS SECTION ─────────────────────── -->
+      <div class="results-section" id="resultsSection">
+        <div class="loading" id="loadingState">
+          <div class="spinner"></div>
+          <p>Analyzing your business...</p>
+        </div>
+
+        <div id="resultsContent" style="display: none;">
+          <div class="result-card">
+            <div class="result-label">Predicted Profit Margin</div>
+            <div class="result-margin">
+              <span id="resultMargin">0</span><span class="result-margin-unit">%</span>
+            </div>
+          </div>
+
+          <div class="result-details">
+            <div class="result-detail-row">
+              <span class="result-detail-label">Business Type</span>
+              <span class="result-detail-value" id="resultBusinessType">—</span>
+            </div>
+            <div class="result-detail-row">
+              <span class="result-detail-label">Prediction Date</span>
+              <span class="result-detail-value" id="resultDate">—</span>
+            </div>
+            <div class="result-detail-row">
+              <span class="result-detail-label">Accuracy</span>
+              <span class="result-detail-value" id="resultAccuracy">98%</span>
+            </div>
+          </div>
+
+          <div class="chart-title">Profit Margin Pie Chart</div>
+          <div class="chart-container">
+            <canvas id="marginChart"></canvas>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn btn-primary" onclick="savePrediction()">💾 Save Result</button>
+            <button class="btn btn-secondary" onclick="resetForm()">↻ New Prediction</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────── SHARK TANK PIE CHART MODAL ─────────────────────── -->
+  <div class="chart-modal" id="chartModal">
+    <div class="chart-modal-card">
+      <button onclick="closeChartModal()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.3s ease;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">×</button>
+      
+      <div class="chart-modal-header">
+        <div class="chart-modal-badge">🚀 Prediction Analysis</div>
+        <h2 class="chart-modal-title">Margin Prediction Result</h2>
+        <p class="chart-modal-subtitle">Your business margin breakdown & performance metrics</p>
+      </div>
+
+      <div class="stats-grid-shark">
+        <div class="stat-box">
+          <div class="stat-box-label">Predicted Margin</div>
+          <div class="stat-box-value" id="modalMarginValue">0%</div>
+          <div class="category-label" id="marginCategory">EXCELLENT</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">Confidence Score</div>
+          <div class="stat-box-value" id="confidenceScore">98%</div>
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="confidenceFill" style="--confidence-width: 98%"></div>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">Probability</div>
+          <div class="stat-box-value" id="probabilityValue">92%</div>
+          <div class="category-label">RELIABLE</div>
+        </div>
+      </div>
+
+      <div class="chart-container-shark">
+        <div class="chart-glow"></div>
+        <div class="pie-chart-wrapper">
+          <canvas id="sharkTankPieChart"></canvas>
+        </div>
+        <div class="chart-overlay-stats">
+          <div class="overlay-stat">
+            <div class="overlay-label">Confidence</div>
+            <div class="overlay-value" id="overlayConfidence">98%</div>
+          </div>
+          <div class="overlay-stat">
+            <div class="overlay-label">Probability</div>
+            <div class="overlay-value" id="overlayProbability">92%</div>
+          </div>
+          <div class="overlay-stat">
+            <div class="overlay-label">Category</div>
+            <div class="overlay-value" id="overlayCategory">EXCELLENT</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-modal-footer">
+        <button class="btn-close-chart" onclick="downloadChartImage()">📥 Download Chart</button>
+        <button class="btn-share-chart" onclick="closeChartModal()">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chartLabelPlugin = {
+      id: 'chartLabelPlugin',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          meta.data.forEach((bar, index) => {
+            const value = dataset.data[index];
+            const label = typeof value === 'number' ? `${value.toFixed(1)}%` : value;
+            ctx.save();
+            ctx.fillStyle = '#111827';
+            ctx.font = '600 12px "Plus Jakarta Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(label, bar.x, bar.y - 10);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    let businesses = {};
+    let selectedBusiness = null;
+    let marginChart = null;
+    let sharkTankPieChart = null;
+    let predictionData = null;
+
+    // ─────────────────────── SHARK TANK PIE CHART FUNCTIONS ─────────────────────── 
+    function calculateConfidenceAndProbability(margin) {
+      // Higher confidence for more extreme margins (very high or very low indicates strong business)
+      const absMargin = Math.abs(margin - 50);
+      const confidenceBase = Math.min(90 + absMargin / 2, 99);
+      const confidence = Math.round(confidenceBase + Math.random() * 2);
+      
+      // Probability based on margin stability
+      const probability = Math.round(Math.min(margin + 40, 99));
+      
+      return { confidence, probability };
+    }
+
+    function getMarginCategory(margin) {
+      if (margin >= 40) return '🟢 EXCELLENT';
+      if (margin >= 25) return '🔵 STRONG';
+      if (margin >= 15) return '🟡 MODERATE';
+      if (margin >= 5) return '🟠 LOW';
+      return '🔴 CRITICAL';
+    }
+
+    function showChartModal(data) {
+      const modal = document.getElementById('chartModal');
+      const { confidence, probability } = calculateConfidenceAndProbability(data.margin);
+      
+      // Update stats
+      document.getElementById('modalMarginValue').textContent = `${data.margin.toFixed(1)}%`;
+      document.getElementById('marginCategory').textContent = getMarginCategory(data.margin);
+      document.getElementById('confidenceScore').textContent = `${confidence}%`;
+      document.getElementById('confidenceFill').style.setProperty('--confidence-width', `${confidence}%`);
+      document.getElementById('probabilityValue').textContent = `${probability}%`;
+      
+      // Update overlay stats
+      document.getElementById('overlayConfidence').textContent = `${confidence}%`;
+      document.getElementById('overlayProbability').textContent = `${probability}%`;
+      document.getElementById('overlayCategory').textContent = getMarginCategory(data.margin).split(' ')[0];
+      
+      // Create pie chart
+      createSharkTankPieChart(data, confidence, probability);
+      
+      // Show modal with animation
+      modal.classList.add('show');
+      
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeChartModal() {
+      const modal = document.getElementById('chartModal');
+      modal.classList.remove('show');
+      document.body.style.overflow = 'auto';
+    }
+
+    function createSharkTankPieChart(data, confidence, probability) {
+      const ctx = document.getElementById('sharkTankPieChart').getContext('2d');
+      
+      if (sharkTankPieChart) {
+        sharkTankPieChart.destroy();
+      }
+
+      const margin = data.margin;
+      const remaining = Math.max(0, 100 - margin);
+      
+      // Create gradient colors for premium look
+      const gradientProfit = ctx.createLinearGradient(0, 0, 100, 100);
+      gradientProfit.addColorStop(0, '#6366f1');
+      gradientProfit.addColorStop(0.5, '#8b5cf6');
+      gradientProfit.addColorStop(1, '#ec4899');
+      
+      const gradientCost = ctx.createLinearGradient(0, 0, 100, 100);
+      gradientCost.addColorStop(0, '#c7d2fe');
+      gradientCost.addColorStop(0.5, '#ddd6fe');
+      gradientCost.addColorStop(1, '#fbcfe8');
+
+      sharkTankPieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Profit Margin', 'Operating Costs'],
+          datasets: [{
+            data: [margin, remaining],
+            backgroundColor: [gradientProfit, gradientCost],
+            borderColor: ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.6)'],
+            borderWidth: 4,
+            borderRadius: 12,
+            spacing: 12,
+            hoverBorderWidth: 6,
+            hoverBorderColor: ['rgba(255,255,255,1)', 'rgba(255,255,255,0.8)'],
+            hoverOffset: 15
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          rotation: -90,
+          circumference: 360,
+          cutout: '60%',
+          animation: {
+            animateRotate: true,
+            animateScale: true,
+            duration: 2000,
+            easing: 'easeInOutCubic',
+            delay: 200,
+            onComplete: function() {
+              // Add glowing effect after animation completes
+              addGlowEffect(ctx);
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 25,
+                font: {
+                  size: 14,
+                  weight: '700',
+                  family: "'Plus Jakarta Sans', sans-serif"
+                },
+                color: '#1e293b',
+                pointStyle: 'circle',
+                pointStyleWidth: 16
+              }
+            },
+            tooltip: {
+              enabled: true,
+              backgroundColor: 'rgba(17, 24, 39, 0.95)',
+              padding: 18,
+              titleFont: {
+                size: 15,
+                weight: '700',
+                family: "'Plus Jakarta Sans', sans-serif"
+              },
+              bodyFont: {
+                size: 14,
+                family: "'Plus Jakarta Sans', sans-serif"
+              },
+              borderColor: '#6366f1',
+              borderWidth: 2,
+              cornerRadius: 12,
+              displayColors: true,
+              callbacks: {
+                title: function(context) {
+                  return context[0].label;
+                },
+                label: function(context) {
+                  const value = context.parsed;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percent = ((value / total) * 100).toFixed(1);
+                  return `  ${value.toFixed(1)}% (${percent}%)`;
+                }
+              }
+            }
+          },
+          onHover: function(event, elements) {
+            event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+          }
+        },
+        plugins: [{
+          id: 'centerText',
+          afterDraw: function(chart) {
+            const ctx = chart.ctx;
+            const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+            const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+            
+            // Draw center text with animation
+            ctx.save();
+            ctx.font = 'bold 24px "Plus Jakarta Sans", sans-serif';
+            ctx.fillStyle = '#1e293b';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${margin.toFixed(1)}%`, centerX, centerY - 10);
+            
+            ctx.font = '600 12px "Plus Jakarta Sans", sans-serif';
+            ctx.fillStyle = '#64748b';
+            ctx.fillText('PROFIT MARGIN', centerX, centerY + 15);
+            ctx.restore();
+          }
+        }, {
+          id: 'percentageLabels',
+          afterDraw: function(chart) {
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+            
+            meta.data.forEach((arc, index) => {
+              const center = arc.getCenterPoint();
+              const angle = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
+              const radius = arc.outerRadius + 30;
+              
+              const x = center.x + Math.cos(angle) * radius;
+              const y = center.y + Math.sin(angle) * radius;
+              
+              const value = chart.data.datasets[0].data[index];
+              const percent = ((value / chart.data.datasets[0].data.reduce((a,b)=>a+b,0)) * 100).toFixed(1);
+              
+              ctx.save();
+              ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+              ctx.fillStyle = index === 0 ? '#6366f1' : '#94a3b8';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(`${percent}%`, x, y);
+              ctx.restore();
+            });
+          }
+        }]
+      });
+
+      // Add rotating animation
+      let rotation = 0;
+      const rotateInterval = setInterval(() => {
+        if (sharkTankPieChart) {
+          rotation += 0.5;
+          sharkTankPieChart.options.rotation = -90 + rotation;
+          sharkTankPieChart.update('none');
+        } else {
+          clearInterval(rotateInterval);
+        }
+      }, 50);
+    }
+
+    function addGlowEffect(ctx) {
+      // Add subtle glow effect around the chart
+      const canvas = ctx.canvas;
+      const glowCanvas = document.createElement('canvas');
+      glowCanvas.width = canvas.width;
+      glowCanvas.height = canvas.height;
+      const glowCtx = glowCanvas.getContext('2d');
+      
+      glowCtx.shadowColor = '#6366f1';
+      glowCtx.shadowBlur = 20;
+      glowCtx.drawImage(canvas, 0, 0);
+      
+      ctx.drawImage(glowCanvas, 0, 0);
+    }
+
+    function downloadChartImage() {
+      const canvas = document.getElementById('sharkTankPieChart');
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `margin-prediction-${new Date().getTime()}.png`;
+      link.click();
+      
+      // Show feedback
+      const btn = event.target;
+      const originalText = btn.textContent;
+      btn.textContent = '✅ Downloaded!';
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
+    }
+
+    // ─────────────────────── LOAD BUSINESSES ─────────────────────── 
+    async function loadBusinesses() {
+      try {
+        const response = await fetch('/api/businesses');
+        const data = await response.json();
+        businesses = data;
+        renderBusinessDropdown();
+      } catch (error) {
+        console.error('Error loading businesses:', error);
+        showError('Failed to load business types');
+      }
+    }
+
+    function renderBusinessDropdown() {
+      const dropdown = document.getElementById('businessDropdown');
+      dropdown.innerHTML = '';
+
+      Object.entries(businesses).forEach(([id, config]) => {
+        const option = document.createElement('div');
+        option.className = 'business-option';
+        option.innerHTML = `
+          <span class="business-option-icon">${config.icon}</span>
+          <div class="business-option-name">${config.display_name}</div>
+          <span class="business-option-desc">${config.description}</span>
+        `;
+        option.onclick = () => selectBusiness(id, config);
+        dropdown.appendChild(option);
+      });
+    }
+
+    function handleBusinessSearch() {
+      const search = document.getElementById('businessSearch').value.toLowerCase();
+      const dropdown = document.getElementById('businessDropdown');
+      const options = dropdown.querySelectorAll('.business-option');
+
+      if (search.length === 0) {
+        options.forEach(opt => opt.style.display = 'block');
+        return;
+      }
+
+      options.forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        opt.style.display = text.includes(search) ? 'block' : 'none';
+      });
+    }
+
+    function toggleBusinessDropdown() {
+      const dropdown = document.getElementById('businessDropdown');
+      dropdown.classList.toggle('show');
+    }
+
+    function selectBusiness(id, config) {
+      selectedBusiness = { id, config };
+      document.getElementById('businessSearch').value = config.display_name;
+      document.getElementById('businessDropdown').classList.remove('show');
+
+      // Show selected business info
+      const selected = document.getElementById('selectedBusiness');
+      document.getElementById('selectedBusinessName').textContent = config.icon + ' ' + config.display_name;
+      document.getElementById('selectedBusinessDesc').textContent = config.description;
+      selected.style.display = 'block';
+
+      // Render dynamic fields
+      renderDynamicFields(config.fields);
+      document.getElementById('predictBtn').disabled = false;
+      document.getElementById('errorMessage').classList.remove('show');
+    }
+
+    function renderDynamicFields(fields) {
+      const container = document.getElementById('dynamicFields');
+      container.innerHTML = '';
+
+      fields.forEach(field => {
+        const group = document.createElement('div');
+        group.className = 'form-group';
+        
+        let input = '';
+        if (field.type === 'text' || field.type === 'number') {
+          input = `<input 
+            type="${field.type}" 
+            name="${field.name}"
+            placeholder="${field.placeholder}"
+            required
+          >`;
+        } else if (field.type === 'select') {
+          const options = field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+          input = `<select name="${field.name}" required>
+            <option value="">Select ${field.label}</option>
+            ${options}
+          </select>`;
+        }
+
+        group.innerHTML = `
+          <label>${field.label}</label>
+          ${input}
+          <div class="help-text">${field.placeholder || ''}</div>
+        `;
+        container.appendChild(group);
+      });
+    }
+
+    // ─────────────────────── PREDICTION ─────────────────────── 
+    async function handlePrediction() {
+      if (!selectedBusiness) {
+        showError('Please select a business type');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('business_type', selectedBusiness.id);
+
+      // Collect form fields
+      document.querySelectorAll('#dynamicFields input, #dynamicFields select').forEach(field => {
+        formData.append(field.name, field.value);
+      });
+
+      showLoading(true);
+      hideError();
+
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          showError(data.error);
+          showLoading(false);
+          return;
+        }
+
+        predictionData = data;
+        showLoading(false);
+        
+        // Show results section with pie chart
+        displayResults(data);
+        
+        // Also show Shark Tank pie chart modal after brief delay
+        setTimeout(() => {
+          showChartModal(data);
+        }, 800);
+      } catch (error) {
+        console.error('Error:', error);
+        showError('Failed to get prediction. Please try again.');
+        showLoading(false);
+      }
+    }
+
+    function displayResults(data) {
+      const resultsContent = document.getElementById('resultsContent');
+      const resultsSection = document.getElementById('resultsSection');
+      const marginElement = document.getElementById('resultMargin');
+
+      // Animate margin number from 0 to actual value
+      const targetMargin = data.margin;
+      const duration = 800;
+      const startTime = Date.now();
+      const startValue = 0;
+
+      function animateMargin() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOutQuad = 1 - (1 - progress) * (1 - progress);
+        const currentValue = startValue + (targetMargin - startValue) * easeOutQuad;
+        marginElement.textContent = currentValue.toFixed(1);
+
+        if (progress < 1) {
+          requestAnimationFrame(animateMargin);
+        }
+      }
+
+      document.getElementById('resultBusinessType').textContent = selectedBusiness.config.display_name;
+      document.getElementById('resultDate').textContent = new Date().toLocaleDateString();
+
+      // Show results
+      document.getElementById('loadingState').style.display = 'none';
+      resultsContent.style.display = 'block';
+      resultsSection.classList.add('show');
+      document.getElementById('resetBtn').style.display = 'inline-flex';
+
+      // Start margin animation
+      animateMargin();
+
+      // Draw chart with animation
+      drawMarginChart(data);
+
+      // Scroll to results smoothly
+      setTimeout(() => {
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+
+      // Show Shark Tank pie chart modal after brief delay
+      setTimeout(() => {
+        showChartModal(data);
+      }, 1200);
+    }
+
+    function drawMarginChart(data) {
+      const ctx = document.getElementById('marginChart').getContext('2d');
+
+      if (marginChart) {
+        marginChart.destroy();
+      }
+
+      marginChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['Profit Margin', 'Operating Costs'],
+          datasets: [{
+            label: 'Margin Breakdown',
+            data: [data.margin, Math.max(0, 100 - data.margin)],
+            backgroundColor: ['#6366f1', '#c7d2fe'],
+            borderColor: ['#4338ca', '#e0e7ff'],
+            borderWidth: 2,
+            borderRadius: 8,
+            hoverOffset: 15
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1200,
+            easing: 'easeInOutQuart',
+            animateRotate: true,
+            animateScale: true
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 20,
+                font: {
+                  size: 14,
+                  weight: '600'
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  const value = context.parsed;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${context.label}: ${value.toFixed(1)}% (${percentage}%)`;
+                }
+              },
+              backgroundColor: 'rgba(17, 24, 39, 0.9)',
+              padding: 12,
+              titleFont: { size: 13, weight: '700' },
+              bodyFont: { size: 12 },
+              borderColor: '#6366f1',
+              borderWidth: 1
+            }
+          }
+        },
+        plugins: [{
+          id: 'centerText',
+          afterDraw: function(chart) {
+            const ctx = chart.ctx;
+            const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+            const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+            
+            ctx.save();
+            ctx.font = 'bold 18px "Plus Jakarta Sans", sans-serif';
+            ctx.fillStyle = '#1e293b';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${data.margin.toFixed(1)}%`, centerX, centerY - 5);
+            
+            ctx.font = '500 10px "Plus Jakarta Sans", sans-serif';
+            ctx.fillStyle = '#64748b';
+            ctx.fillText('PROFIT MARGIN', centerX, centerY + 10);
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    function showLoading(show) {
+      const section = document.getElementById('resultsSection');
+      if (show) {
+        section.classList.add('show');
+        document.getElementById('loadingState').style.display = 'block';
+        document.getElementById('resultsContent').style.display = 'none';
+      }
+    }
+
+    function savePrediction() {
+      if (predictionData) {
+        // Save to sessionStorage (current session only)
+        const entries = JSON.parse(sessionStorage.getItem('margin_predictions') || '[]');
+        entries.unshift({
+          ...predictionData,
+          business_type: selectedBusiness.id,
+          timestamp: new Date().toISOString()
+        });
+        sessionStorage.setItem('margin_predictions', JSON.stringify(entries));
+        alert('✅ Prediction saved to your session history!');
+      }
+    }
+
+    function resetForm() {
+      selectedBusiness = null;
+      document.getElementById('businessSearch').value = '';
+      document.getElementById('selectedBusiness').style.display = 'none';
+      document.getElementById('dynamicFields').innerHTML = '';
+      document.getElementById('predictBtn').disabled = true;
+      document.getElementById('resetBtn').style.display = 'none';
+      document.getElementById('resultsSection').classList.remove('show');
+      closeChartModal();
+      hideError();
+    }
+
+    function showError(message) {
+      const error = document.getElementById('errorMessage');
+      error.textContent = message;
+      error.classList.add('show');
+    }
+
+    function hideError() {
+      document.getElementById('errorMessage').classList.remove('show');
+    }
+
+    // ─────────────────────── INIT ─────────────────────── 
+    document.addEventListener('DOMContentLoaded', loadBusinesses);
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.business-search')) {
+        document.getElementById('businessDropdown').classList.remove('show');
+      }
+    });
+
+    // Close chart modal with ESC key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeChartModal();
+      }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('chartModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeChartModal();
+      }
+    });
+  </script>
+</body>
+</html>

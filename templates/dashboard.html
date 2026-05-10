@@ -1,608 +1,1115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BizOS — Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<style>
-  html, body {
-  height: 100%;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prediction Analysis Report — MarginPro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-:root {
-  --bg: #0a0a12;
-  --surface: #111120;
-  --surface2: #181828;
-  --surface3: #1f1f35;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.12);
-  --accent: #7c6fff;
-  --accent2: #4ff8c8;
-  --accent3: #ff6b8a;
-  --accent4: #ffc600;
-  --text: #f0eeff;
-  --muted: #7b7a96;
-  --card-radius: 16px;
-}
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --warning: #f97316;
+      --danger: #ef4444;
+      --bg: #f8fbff;
+      --surface: #ffffff;
+      --surface-card: #ffffff;
+      --surface-dark: #e2e8f0;
+      --text: #111827;
+      --text-muted: #64748b;
+      --border: #dbeafe;
+      --card-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+      --card-shadow-lg: 0 26px 82px rgba(15, 23, 42, 0.12);
+      --chart-ring: rgba(37, 99, 235, 0.08);
+      --chart-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+    }
 
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  height: 100vh;
-  display: flex;
-  overflow: hidden; /* keep this */
-}
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 25%),
+                  linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      color: var(--text);
+      line-height: 1.65;
+    }
 
-/* ── Sidebar ── */
-.sidebar {
-  width: 220px; min-height: 100vh;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  padding: 2rem 1rem; gap: 4px; flex-shrink: 0;
-}
-.brand {
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 0.5rem 1.75rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0.75rem;
-}
-.brand-icon {
-  width: 34px; height: 34px; border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), #5b4de8);
-  display: flex; align-items: center; justify-content: center;
-}
-.brand-icon svg { width: 18px; height: 18px; fill: white; }
-.brand-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
+    /* ─────────────────────── HEADER ─────────────────────── */
+    header {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
 
-.nav-btn {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px;
-  border: none; background: transparent;
-  color: var(--muted);
-  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
-  cursor: pointer; width: 100%; text-align: left; transition: all 0.15s;
-  text-decoration: none;
-}
-.nav-btn svg { width: 17px; height: 17px; opacity: 0.7; flex-shrink: 0; }
-.nav-btn:hover { background: var(--surface2); color: var(--text); }
-.nav-btn.active { background: rgba(124,111,255,0.15); color: var(--accent); }
-.nav-btn.active svg { opacity: 1; }
-.nav-section-label {
-  font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--muted); padding: 10px 12px 4px; opacity: 0.6;
-}
-.sidebar-spacer { flex: 1; }
-.nav-btn.cta {
-  margin-top: 8px;
-  background: linear-gradient(135deg, var(--accent), #5b4de8);
-  color: white; justify-content: center; font-weight: 600;
-}
-.nav-btn.cta:hover { filter: brightness(1.1); }
-.nav-btn.cta svg { opacity: 1; }
+    nav {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-/* ── Main ── */
-.main {
-  flex: 1;
-  height: 100vh;        /* IMPORTANT */
-  overflow-y: auto;
-  padding: 2.5rem 2rem;
-}
+    .nav-brand {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
 
-.page-header {
-  display: flex; align-items: flex-start;
-  justify-content: space-between; margin-bottom: 2rem;
-}
-.page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
-.page-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .nav-brand span {
+      color: var(--accent);
+    }
 
-.badge {
-  font-size: 12px; font-weight: 500;
-  padding: 5px 12px; border-radius: 999px;
-  background: rgba(79,248,200,0.1); color: var(--accent2);
-  border: 1px solid rgba(79,248,200,0.2);
-  display: flex; align-items: center; gap: 6px;
-}
-.badge::before {
-  content: ''; width: 6px; height: 6px;
-  border-radius: 50%; background: var(--accent2);
-  animation: pulse 2s infinite;
-}
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+      align-items: center;
+    }
 
-/* ── Stats ── */
-.stats {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 14px; margin-bottom: 1.75rem;
-}
-.stat-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--card-radius); padding: 1.25rem 1.5rem;
-  position: relative; overflow: hidden; cursor: pointer;
-  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
-}
-.stat-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-}
-.stat-card.solar::before  { background: linear-gradient(90deg, #ffc600, #ff6b8a); }
-.stat-card.paper::before  { background: linear-gradient(90deg, var(--accent2), #00d4ff); }
-.stat-card.total::before  { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
-.stat-card:hover { transform: translateY(-3px); border-color: var(--border2); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
-.stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
-.stat-value { font-size: 30px; font-weight: 600; margin-top: 6px; letter-spacing: -0.03em; }
-.stat-sub { font-size: 12px; margin-top: 5px; color: var(--muted); }
-.stat-sub .up   { color: var(--accent2); }
-.stat-sub .down { color: var(--accent3); }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
 
-/* ── Two-column grid ── */
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.75rem; }
+    .nav-links a:hover {
+      color: var(--primary);
+    }
 
-/* ── Card ── */
-.card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--card-radius); padding: 1.5rem;
-}
-.card-title {
-  font-size: 14px; font-weight: 600; margin-bottom: 1.25rem;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.card-title a {
-  font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 500;
-}
-.card-title a:hover { text-decoration: underline; }
+    /* ─────────────────────── MAIN ─────────────────────── */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
 
-/* ── Chart canvas ── */
-.chart-wrap { height: 180px; position: relative; }
+    .page-header {
+      margin-bottom: 2.5rem;
+    }
 
-/* ── Prediction list ── */
-.pred-list { display: flex; flex-direction: column; gap: 10px; }
-.pred-item {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 12px 14px;
-  display: flex; align-items: center; gap: 12px;
-  transition: all 0.15s; cursor: pointer;
-}
-.pred-item:hover { border-color: var(--border2); transform: translateX(3px); }
-.pred-dot {
-  width: 38px; height: 38px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; flex-shrink: 0;
-}
-.pred-dot.solar { background: rgba(255,198,0,0.15); }
-.pred-dot.paper { background: rgba(79,248,200,0.15); }
-.pred-info { flex: 1; min-width: 0; }
-.pred-type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
-.pred-type.solar { color: var(--accent4); }
-.pred-type.paper { color: var(--accent2); }
-.pred-name { font-size: 12px; color: var(--muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pred-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.pred-margin { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; flex-shrink: 0; }
-.pred-margin.high  { color: var(--accent2); }
-.pred-margin.mid   { color: var(--accent4); }
-.pred-margin.low   { color: var(--accent3); }
+    .page-title {
+      font-size: clamp(2rem, 2.6vw, 3.2rem);
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
 
-/* ── Breakdown table ── */
-.breakdown-list { display: flex; flex-direction: column; gap: 8px; }
-.bd-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
-}
-.bd-row:last-child { border-bottom: none; }
-.bd-label { color: var(--muted); font-size: 12px; }
-.bd-val { font-weight: 600; }
+    .page-desc {
+      color: var(--text-muted);
+      max-width: 720px;
+      font-size: 1rem;
+    }
 
-/* ── Empty state ── */
-.empty { text-align: center; padding: 2rem; color: var(--muted); font-size: 13px; }
-.empty-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3; }
+    .analysis-section {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      animation: fadeInUp 1.1s ease both;
+    }
 
-/* ── Loading shimmer ── */
-.shimmer {
-  background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 6px; height: 20px;
-}
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .analysis-card,
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+      border-radius: 28px;
+      box-shadow: var(--card-shadow);
+      padding: 2rem;
+    }
 
-/* ── New prediction badge ── */
-.new-badge {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  padding: 2px 8px; border-radius: 999px;
-  background: rgba(79,248,200,0.15); color: var(--accent2);
-  border: 1px solid rgba(79,248,200,0.3);
-  margin-left: 8px; animation: fadeIn 0.5s ease;
-}
-@keyframes fadeIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+    .analysis-card {
+      position: relative;
+      overflow: hidden;
+    }
 
-/* ── Toast notification ── */
-.toast {
-  position: fixed; bottom: 2rem; right: 2rem;
-  background: var(--surface); border: 1px solid rgba(79,248,200,0.3);
-  border-radius: 12px; padding: 12px 18px;
-  font-size: 13px; color: var(--accent2);
-  display: flex; align-items: center; gap: 10px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  transform: translateY(100px); opacity: 0;
-  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-  z-index: 999;
-}
-.toast.show { transform: translateY(0); opacity: 1; }
-.toast svg { width: 16px; height: 16px; fill: var(--accent2); flex-shrink: 0; }
-</style>
+    .analysis-card::before {
+      content: '';
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      top: -80px;
+      right: -80px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.18), transparent 60%);
+      pointer-events: none;
+    }
+
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .analysis-header h2 {
+      font-size: 1.6rem;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .analysis-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--primary-dark);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .pie-panel {
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      min-height: 420px;
+    }
+
+    .pie-wrapper {
+      width: min(100%, 360px);
+      aspect-ratio: 1;
+      margin: 0 auto;
+      padding: 0.85rem;
+      background: radial-gradient(circle at center, rgba(99, 102, 241, 0.06), transparent 58%);
+      border-radius: 50%;
+      box-shadow: var(--chart-shadow);
+      animation: rotateIn 1.2s ease both;
+    }
+
+    .pie-card {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: white;
+      padding: 1rem;
+      box-shadow: inset 0 12px 30px rgba(15, 23, 42, 0.04);
+    }
+
+    .legend-grid {
+      display: grid;
+      gap: 0.95rem;
+      margin-top: 1.5rem;
+    }
+
+    .legend-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.9rem;
+      align-items: center;
+      padding: 1rem 1.2rem;
+      border-radius: 18px;
+      background: var(--surface);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      cursor: default;
+    }
+
+    .legend-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+    }
+
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+
+    .legend-text {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.97rem;
+    }
+
+    .legend-value {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .summary-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .summary-item {
+      display: grid;
+      gap: 0.35rem;
+      padding: 1rem 1.15rem;
+      border-radius: 18px;
+      background: #f8fbff;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .summary-item strong {
+      font-size: 1.5rem;
+      color: var(--primary-dark);
+    }
+
+    .summary-item span {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rotateIn {
+      from {
+        transform: rotate(-19deg) scale(0.92);
+        opacity: 0;
+      }
+      to {
+        transform: rotate(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* ─────────────────────── STATS ─────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--card-shadow-lg);
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ─────────────────────── PREDICTIONS SECTION ─────────────────────── */
+    .predictions-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .clear-btn {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.3s ease;
+    }
+
+    .clear-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+
+    .predictions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .prediction-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 1.5rem;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .prediction-item:hover {
+      border-color: var(--primary);
+      box-shadow: var(--card-shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    .support-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .support-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .support-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .support-item h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .support-item p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .support-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .support-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .prediction-icon {
+      font-size: 2rem;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(99, 102, 241, 0.1);
+      border-radius: 10px;
+    }
+
+    .prediction-info h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .prediction-info p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .prediction-meta {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .prediction-margin {
+      text-align: right;
+    }
+
+    .prediction-margin-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .prediction-margin-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+      margin-bottom: 1rem;
+    }
+
+    .empty-state a {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .empty-state a:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    /* ─────────────────────── CHARTS SECTION ─────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .chart-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.25s ease;
+    }
+
+    .chart-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .chart-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.4rem;
+      color: var(--text);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 340px;
+      padding: 1rem 0;
+    }
+
+    /* ─────────────────────── RESPONSIVE ─────────────────────── */
+    @media (max-width: 1024px) {
+      .analysis-section {
+        grid-template-columns: 1fr;
+      }
+
+      .pie-panel {
+        min-height: 360px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .analysis-card,
+      .summary-card {
+        padding: 1.5rem;
+      }
+
+      .analysis-header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .prediction-item {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .prediction-margin {
+        text-align: left;
+      }
+
+      .section-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
+  <!-- ─────────────────────── HEADER ─────────────────────── -->
+  <header>
+    <nav>
+      <a href="/" class="nav-brand">Margin<span>Pro</span></a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/prediction">Predict</a></li>
+        <li><a href="/dashboard">Dashboard</a></li>
+      </ul>
+    </nav>
+  </header>
 
-<!-- Sidebar -->
-<aside class="sidebar">
-  <div class="brand">
-    <div class="brand-icon">
-      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+  <!-- ─────────────────────── MAIN ─────────────────────── -->
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">Prediction Analysis Report</h1>
+      <p class="page-desc">A modern analytics dashboard presenting margin insights with animated visual detail, actionable categories, and an elegant responsive layout.</p>
     </div>
-    <span class="brand-name">BizOS</span>
-  </div>
 
-  <div class="nav-section-label">Main</div>
+    <section class="analysis-section">
+      <div class="analysis-card">
+        <div class="analysis-header">
+          <div>
+            <div class="analysis-label">Live Forecast</div>
+            <h2>Margin Breakdown by Opportunity</h2>
+          </div>
+          <div style="color: var(--text-muted); font-size: 0.95rem;">Hover the slices for exact values and category meaning.</div>
+        </div>
 
-  <a href="/dashboard" class="nav-btn active">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-    Dashboard
-  </a>
+        <div class="pie-panel">
+          <div class="pie-wrapper">
+            <div class="pie-card">
+              <canvas id="analysisPieChart"></canvas>
+            </div>
+          </div>
+        </div>
 
-  <a href="/prediction" class="nav-btn">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
-    New Prediction
-  </a>
-
-  <a href="/home" class="nav-btn">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    Home
-  </a>
-
-  <div class="sidebar-spacer"></div>
-
-  <button onclick="startNewUser()" class="nav-btn" style="color: var(--danger); margin-bottom: 8px;">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-    New User
-  </button>
-
-  <a href="/prediction" class="nav-btn cta">
-    <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
-    New Prediction
-  </a>
-</aside>
-
-<!-- Main -->
-<main class="main">
-  <div class="page-header">
-    <div>
-      <div class="page-title">Dashboard <span id="new-badge-title"></span></div>
-      <div class="page-sub" id="page-sub">Loading your latest data…</div>
-    </div>
-    <span class="badge">Live</span>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats">
-    <div class="stat-card solar">
-      <div class="stat-label">☀️ Solar Predictions</div>
-      <div class="stat-value" id="stat-solar">—</div>
-      <div class="stat-sub" id="stat-solar-avg">—</div>
-    </div>
-    <div class="stat-card paper">
-      <div class="stat-label">📄 Paper Bag Predictions</div>
-      <div class="stat-value" id="stat-paper">—</div>
-      <div class="stat-sub" id="stat-paper-avg">—</div>
-    </div>
-    <div class="stat-card total">
-      <div class="stat-label">📊 Total Predictions</div>
-      <div class="stat-value" id="stat-total">—</div>
-      <div class="stat-sub" id="stat-updated">—</div>
-    </div>
-  </div>
-
-  <!-- Charts Row -->
-  <div class="two-col" style="margin-bottom:1.75rem;">
-    <div class="card">
-      <div class="card-title">Solar Margin Trend</div>
-      <div class="chart-wrap"><canvas id="solarChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Paper Bag Margin Trend</div>
-      <div class="chart-wrap"><canvas id="paperChart"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Recent Predictions + Latest Breakdown -->
-  <div class="two-col">
-
-    <!-- Recent predictions list -->
-    <div class="card">
-      <div class="card-title">
-        Recent Predictions
-        <a href="/prediction">+ New</a>
+        <div class="legend-grid" id="analysisLegend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#2563eb"></div>
+            <div class="legend-text">Forecast Accuracy</div>
+            <div class="legend-value">28%</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#10b981"></div>
+            <div class="legend-text">Renewable Impact</div>
+            <div class="legend-value">22%</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#f97316"></div>
+            <div class="legend-text">Cost Savings</div>
+            <div class="legend-value">18%</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#ef4444"></div>
+            <div class="legend-text">Profit Stability</div>
+            <div class="legend-value">16%</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#8b5cf6"></div>
+            <div class="legend-text">Growth Trend</div>
+            <div class="legend-value">16%</div>
+          </div>
+        </div>
       </div>
-      <div class="pred-list" id="pred-list">
-        <div class="empty"><div class="empty-icon">📊</div><p>No predictions yet.</p></div>
+
+      <aside class="summary-card">
+        <h3>Executive Summary</h3>
+        <div class="summary-list">
+          <div class="summary-item">
+            <strong>74%</strong>
+            <span>Confidence in remaining forecast windows</span>
+          </div>
+          <div class="summary-item">
+            <strong>8 days</strong>
+            <span>Average time to next profit review</span>
+          </div>
+          <div class="summary-item">
+            <strong>+12%</strong>
+            <span>Projected margin improvement from optimized planning</span>
+          </div>
+          <div class="summary-item">
+            <strong>5 categories</strong>
+            <span>Critical segments tracked in the report</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Predictions</div>
+        <div class="stat-value" id="totalPredictions">0</div>
+        <div class="stat-sub">All time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Margin</div>
+        <div class="stat-value" id="avgMargin">0%</div>
+        <div class="stat-sub">Across all predictions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Highest Margin</div>
+        <div class="stat-value" id="highestMargin">0%</div>
+        <div class="stat-sub">Best performing</div>
       </div>
     </div>
 
-    <!-- Latest prediction breakdown -->
-    <div class="card">
-      <div class="card-title" id="latest-title">Latest Prediction</div>
-      <div id="latest-breakdown">
-        <div class="empty"><div class="empty-icon">⚡</div><p>Make a prediction to see the breakdown here.</p></div>
+    <!-- Predictions -->
+    <div class="predictions-section">
+      <div class="section-title">
+        <span>📈 Your Predictions</span>
+        <button class="clear-btn" onclick="clearPredictions()">Clear History</button>
+      </div>
+      <div id="predictionsList" class="predictions-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <p>No predictions yet</p>
+          <p style="font-size: 0.9rem; margin-bottom: 1rem;">Start by making your first margin prediction.</p>
+          <a href="/prediction">Make Prediction →</a>
+        </div>
       </div>
     </div>
 
+    <div class="support-section">
+      <div class="section-title">
+        <span>🛎️ Support Requests</span>
+      </div>
+      <div id="supportRequestsList" class="support-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">🛎️</div>
+          <p>No support messages yet</p>
+          <p style="font-size: 0.9rem; margin-bottom: 1rem;">Messages submitted through the contact modal will appear here.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid" id="chartsGrid" style="display: none;">
+      <div class="chart-card">
+        <div class="chart-title">Margin Distribution</div>
+        <div class="chart-container">
+          <canvas id="marginDistChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Predictions by Business Type</div>
+        <div class="chart-container">
+          <canvas id="businessTypeChart"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 
-</main>
+  <script>
+    const chartLabelPlugin = {
+      id: 'chartLabelPlugin',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          meta.data.forEach((bar, index) => {
+            const value = dataset.data[index];
+            if (typeof value !== 'number') return;
+            ctx.save();
+            ctx.fillStyle = '#111827';
+            ctx.font = '600 12px "Plus Jakarta Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(`${value.toFixed(1)}%`, bar.x, bar.y - 10);
+            ctx.restore();
+          });
+        });
+      }
+    };
 
-<!-- Toast -->
-<div class="toast" id="toast">
-  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-  <span id="toast-msg">Dashboard updated!</span>
-</div>
+    let predictions = [];
+    let marginDistChart = null;
+    let businessTypeChart = null;
 
-<script>
-// ── Helpers ───────────────────────────────────────────────────────────────
-function marginClass(m) {
-  if (m >= 40) return 'high';
-  if (m >= 20) return 'mid';
-  return 'low';
-}
+    // Load predictions from sessionStorage (current session only)
+    async function loadPredictions() {
+      const stored = sessionStorage.getItem('margin_predictions');
+      predictions = stored ? JSON.parse(stored) : [];
+      renderPredictions();
+      updateStats();
+      if (predictions.length > 0) {
+        renderCharts();
+      }
+      await loadSupportMessages();
+    }
 
-function timeAgo(ts) {
-  if (!ts) return '—';
-  const d = new Date(ts.replace(' ', 'T'));
-  const diff = Date.now() - d.getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1)  return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs}h ago`;
-  return d.toLocaleDateString('en-IN');
-}
+    function renderPredictions() {
+      const container = document.getElementById('predictionsList');
+      
+      if (predictions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>No predictions yet</p>
+            <p style="font-size: 0.9rem; margin-bottom: 1rem;">Start by making your first margin prediction.</p>
+            <a href="/prediction">Make Prediction →</a>
+          </div>
+        `;
+        document.getElementById('chartsGrid').style.display = 'none';
+        return;
+      }
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  document.getElementById('toast-msg').textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3500);
-}
+      container.innerHTML = '';
+      predictions.forEach((pred, index) => {
+        const date = new Date(pred.timestamp).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
 
-// ── Charts ────────────────────────────────────────────────────────────────
-let solarChartInst = null;
-let paperChartInst = null;
+        const item = document.createElement('div');
+        item.className = 'prediction-item';
+        item.innerHTML = `
+          <div class="prediction-icon">${pred.display_name ? pred.display_name.split(' ')[0] : '📊'}</div>
+          <div class="prediction-info">
+            <h3>${pred.display_name || 'Prediction'}</h3>
+            <p>${pred.business_type.charAt(0).toUpperCase() + pred.business_type.slice(1)} Business</p>
+            <div class="prediction-meta">
+              <span>📅 ${date}</span>
+              <span>⏱️ ${new Date(pred.timestamp).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}</span>
+            </div>
+          </div>
+          <div class="prediction-margin">
+            <div class="prediction-margin-value">${pred.margin.toFixed(2)}%</div>
+            <div class="prediction-margin-label">Profit Margin</div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
 
-function renderTrendChart(canvasId, history, color, existingInst) {
-  if (existingInst) existingInst.destroy();
-  if (!history || history.length === 0) return null;
+      document.getElementById('chartsGrid').style.display = 'grid';
+    }
 
-  // Ensure canvas exists
-  const canvasElement = document.getElementById(canvasId);
-  if (!canvasElement) {
-    console.warn(`Canvas element ${canvasId} not found`);
-    return null;
-  }
+    function updateStats() {
+      if (predictions.length === 0) {
+        document.getElementById('totalPredictions').textContent = '0';
+        document.getElementById('avgMargin').textContent = '0%';
+        document.getElementById('highestMargin').textContent = '0%';
+        return;
+      }
 
-  const labels = history.map(h => {
-    const d = new Date(h.timestamp.replace(' ','T'));
-    return d.toLocaleDateString('en-IN', { month:'short', day:'numeric' });
-  });
-  const values = history.map(h => h.prediction);
+      const margins = predictions.map(p => p.margin);
+      const total = predictions.length;
+      const avg = (margins.reduce((a, b) => a + b, 0) / total).toFixed(2);
+      const highest = Math.max(...margins).toFixed(2);
 
-  try {
-    const ctx = canvasElement.getContext('2d');
-    return new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          data: values,
-          borderColor: color,
-          backgroundColor: color + '18',
-          borderWidth: 2,
-          pointBackgroundColor: color,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          fill: true,
-          tension: 0.4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: {
-            beginAtZero: false,
-            grid:  { color: 'rgba(255,255,255,0.06)' },
-            ticks: { color: '#7b7a96', font: { size: 10 }, callback: v => v + '%' }
+      document.getElementById('totalPredictions').textContent = total;
+      document.getElementById('avgMargin').textContent = avg + '%';
+      document.getElementById('highestMargin').textContent = highest + '%';
+    }
+
+    function renderCharts() {
+      // Margin Distribution Chart
+      const ctx1 = document.getElementById('marginDistChart').getContext('2d');
+      if (marginDistChart) marginDistChart.destroy();
+
+      marginDistChart = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+          labels: predictions.map((p, i) => `Prediction ${i + 1}`),
+          datasets: [{
+            label: 'Profit Margin (%)',
+            data: predictions.map(p => p.margin),
+            backgroundColor: 'rgba(99, 102, 241, 0.7)',
+            borderColor: 'rgba(67, 56, 202, 1)',
+            borderRadius: 18,
+            borderWidth: 1,
+            maxBarThickness: 48
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+            easing: 'easeInOutCubic',
+            delay: (context) => {
+              let delay = 0;
+              if (context.type === 'data') {
+                delay = context.dataIndex * 80;
+              }
+              return delay;
+            }
           },
-          x: {
-            grid:  { display: false },
-            ticks: { color: '#7b7a96', font: { size: 10 } }
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  return `${context.parsed.y.toFixed(1)}%`; 
+                }
+              },
+              backgroundColor: 'rgba(17, 24, 39, 0.9)',
+              padding: 12,
+              titleFont: { size: 13, weight: '700' },
+              bodyFont: { size: 12 },
+              borderColor: '#6366f1',
+              borderWidth: 1
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#475569', font: { size: 12, weight: '600' } }
+            },
+            y: {
+              beginAtZero: true,
+              max: 100,
+              grid: { color: '#e2e8f0', drawBorder: false },
+              ticks: { color: '#475569', font: { size: 12 } }
+            }
+          }
+        },
+        plugins: [chartLabelPlugin]
+      });
+
+      // Business Type Chart
+      const ctx2 = document.getElementById('businessTypeChart').getContext('2d');
+      if (businessTypeChart) businessTypeChart.destroy();
+
+      const businessCounts = {};
+      predictions.forEach(p => {
+        businessCounts[p.business_type] = (businessCounts[p.business_type] || 0) + 1;
+      });
+
+      const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#14b8a6'];
+
+      businessTypeChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(businessCounts).map(b => b.charAt(0).toUpperCase() + b.slice(1)),
+          datasets: [{
+            data: Object.values(businessCounts),
+            backgroundColor: colors.slice(0, Object.keys(businessCounts).length),
+            borderColor: 'white',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            animateRotate: true,
+            animateScale: false,
+            duration: 1200,
+            easing: 'easeInOutQuart'
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 18,
+                font: { size: 13, weight: '600' },
+                color: '#475569'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(17, 24, 39, 0.9)',
+              padding: 12,
+              titleFont: { size: 13, weight: '700' },
+              bodyFont: { size: 12 },
+              borderColor: '#6366f1',
+              borderWidth: 1
+            }
           }
         }
+      });
+    }
+
+    function clearPredictions() {
+      if (confirm('Are you sure you want to clear all predictions from this session? This cannot be undone.')) {
+        sessionStorage.removeItem('margin_predictions');
+        predictions = [];
+        renderPredictions();
+        updateStats();
       }
-    });
-  } catch (err) {
-    console.error(`Failed to render chart ${canvasId}:`, err);
-    return null;
-  }
-}
-
-// ── Render functions ──────────────────────────────────────────────────────
-function renderStats(stats) {
-  document.getElementById('stat-solar').textContent  = stats.solar_records_count;
-  document.getElementById('stat-paper').textContent  = stats.paper_records_count;
-  document.getElementById('stat-total').textContent  = stats.predictions_count;
-  document.getElementById('stat-solar-avg').innerHTML = `Avg margin: <span class="up">${stats.avg_solar_margin}%</span>`;
-  document.getElementById('stat-paper-avg').innerHTML = `Avg margin: <span class="up">${stats.avg_paper_margin}%</span>`;
-  document.getElementById('stat-updated').textContent = `Updated ${timeAgo(stats.last_updated)}`;
-}
-
-function renderPredList(predictions) {
-  const el = document.getElementById('pred-list');
-  if (!predictions || predictions.length === 0) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><p>No predictions yet. <a href="/prediction" style="color:var(--accent)">Make one →</a></p></div>`;
-    return;
-  }
-
-  el.innerHTML = predictions.slice(0, 8).map((p, i) => {
-    const type   = p.business_type || p.type || 'solar';
-    const margin = p.prediction || 0;
-    const isNew  = i === 0;
-    const nameLine = p.customer_name ? `<div class="pred-name">${p.customer_name}</div>` : '';
-    return `
-      <div class="pred-item" onclick="showBreakdown(${i})">
-        <div class="pred-dot ${type}">${type === 'solar' ? '☀️' : '📄'}</div>
-        <div class="pred-info">
-          <div class="pred-type ${type}">${type === 'solar' ? 'Solar Business' : 'Paper Bags'}${isNew ? '<span class="new-badge">NEW</span>' : ''}</div>
-          ${nameLine}
-          <div class="pred-time">${timeAgo(p.timestamp)}</div>
-        </div>
-        <div class="pred-margin ${marginClass(margin)}">${margin.toFixed(1)}%</div>
-      </div>`;
-  }).join('');
-}
-
-function renderLatestBreakdown(latest, type) {
-  const el    = document.getElementById('latest-breakdown');
-  const title = document.getElementById('latest-title');
-
-  if (!latest) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚡</div><p>Make a prediction to see the breakdown here.</p></div>`;
-    return;
-  }
-
-  const typeName = (type === 'solar') ? '☀️ Solar' : '📄 Paper Bags';
-  title.textContent = `Latest · ${typeName}`;
-  if (latest.customer_name) {
-    title.textContent += ` · ${latest.customer_name}`;
-  }
-
-  const breakdown = latest.breakdown || [];
-  el.innerHTML = `
-    <div style="margin-bottom:1rem;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Gross Margin</div>
-      <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--accent2);">${latest.prediction.toFixed(2)}%</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${latest.timestamp}</div>
-    </div>
-    <div class="breakdown-list">
-      ${breakdown.map(b => `
-        <div class="bd-row">
-          <span class="bd-label">${b.label}</span>
-          <span class="bd-val" style="color:${b.color || 'var(--text)'}">${b.value}</span>
-        </div>
-      `).join('')}
-    </div>`;
-}
-
-// ── New User / Clear Session ────────────────────────────────────────────────
-async function startNewUser() {
-  if (confirm('Start a new user session? This will clear all previous data and reset the dashboard.')) {
-    try {
-      await fetch('/api/clear-session', { method: 'POST' });
-      // Reload to show fresh dashboard
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 300);
-    } catch (e) {
-      console.log('Session cleared');
-      window.location.href = '/dashboard';
     }
-  }
-}
 
-// ── Load data from backend ────────────────────────────────────────────────
-let allPredictions = [];
-
-async function loadData() {
-  try {
-    const [statsRes, dashRes] = await Promise.all([
-      fetch('/api/stats'),
-      fetch('/api/dashboard')
-    ]);
-
-    const stats = await statsRes.json();
-    const dash  = await dashRes.json();
-
-    renderStats(stats);
-
-    // Render trend charts with a small delay to ensure DOM is ready
-    setTimeout(() => {
-      solarChartInst = renderTrendChart('solarChart', dash.solar.history, '#ffc600', solarChartInst);
-      paperChartInst = renderTrendChart('paperChart', dash.paperbags.history, '#4ff8c8', paperChartInst);
-    }, 100);
-
-    // Merge and sort all predictions
-    const solarTagged = (dash.solar.history || []).map(r => ({...r, business_type:'solar'}));
-    const paperTagged = (dash.paperbags.history || []).map(r => ({...r, business_type:'paperbags'}));
-    allPredictions = [...solarTagged, ...paperTagged].sort((a,b) => b.timestamp.localeCompare(a.timestamp));
-
-    renderPredList(allPredictions);
-
-    // Show the most recent latest (whichever is newer)
-    const latestSolar = dash.solar.latest;
-    const latestPaper = dash.paperbags.latest;
-    let latestOverall = null, latestType = 'solar';
-
-    if (latestSolar && latestPaper) {
-      if (latestSolar.timestamp >= latestPaper.timestamp) {
-        latestOverall = latestSolar; latestType = 'solar';
-      } else {
-        latestOverall = latestPaper; latestType = 'paperbags';
+    function renderSupportMessages(messages) {
+      const container = document.getElementById('supportRequestsList');
+      if (!messages.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🛎️</div>
+            <p>No support messages yet</p>
+            <p style="font-size: 0.9rem; margin-bottom: 1rem;">Messages submitted through the contact modal will appear here.</p>
+          </div>
+        `;
+        return;
       }
-    } else {
-      latestOverall = latestSolar || latestPaper;
-      latestType    = latestSolar ? 'solar' : 'paperbags';
+
+      container.innerHTML = '';
+      messages.forEach((msg) => {
+        const item = document.createElement('div');
+        item.className = 'support-item';
+        item.innerHTML = `
+          <h3>${msg.name} — ${msg.email}</h3>
+          <p>${msg.message}</p>
+          <div class="support-meta">
+            <span>📅 ${msg.timestamp}</span>
+            <span class="support-status">Status: ${msg.status || 'new'}</span>
+          </div>
+        `;
+        container.appendChild(item);
+      });
     }
 
-    renderLatestBreakdown(latestOverall, latestType);
-
-    // Update subtitle
-    document.getElementById('page-sub').textContent =
-      `${stats.predictions_count} total predictions · Updated just now`;
-
-  } catch (err) {
-    console.error('Failed to load dashboard data:', err);
-    document.getElementById('page-sub').textContent = 'Could not load data — check Flask server is running.';
-  }
-}
-
-// Show breakdown for a clicked prediction
-function showBreakdown(index) {
-  const p = allPredictions[index];
-  if (!p) return;
-  renderLatestBreakdown(p, p.business_type);
-}
-
-// ── Check if we just came from a prediction (show toast) ──────────────────
-window.addEventListener('load', async () => {
-  // Ensure DOM is fully ready
-  await new Promise(resolve => {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', resolve);
-    } else {
-      resolve();
+    async function loadSupportMessages() {
+      try {
+        const response = await fetch('/api/support-messages');
+        const data = await response.json();
+        renderSupportMessages(data.support_messages || []);
+      } catch (error) {
+        console.error('Failed to load support messages:', error);
+        renderSupportMessages([]);
+      }
     }
-  });
-  
-  await loadData();
 
-  // If referrer is the prediction page, show toast
-  if (document.referrer && document.referrer.includes('/prediction')) {
-    showToast('✅ Prediction saved — dashboard updated!');
-    document.getElementById('new-badge-title').innerHTML = '<span class="new-badge">UPDATED</span>';
-  }
-});
-</script>
+    // Initialize
+    function createPieLabelPlugin() {
+      return {
+        id: 'pieLabelPlugin',
+        afterDraw(chart) {
+          const ctx = chart.ctx;
+          chart.getDatasetMeta(0).data.forEach((segment, index) => {
+            const center = segment.getCenterPoint();
+            const value = chart.data.datasets[0].data[index];
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${value}%`, center.x, center.y);
+            ctx.restore();
+          });
+        }
+      };
+    }
+
+    function renderReportChart() {
+      const ctx = document.getElementById('analysisPieChart').getContext('2d');
+      const labels = ['Forecast Accuracy', 'Renewable Impact', 'Cost Savings', 'Profit Stability', 'Growth Trend'];
+      const values = [28, 22, 18, 16, 16];
+      const colors = ['#2563eb', '#10b981', '#f97316', '#ef4444', '#8b5cf6'];
+      const offsets = [18, 0, 0, 0, 0];
+
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderColor: '#ffffff',
+            borderWidth: 3,
+            hoverOffset: 14,
+            offset: offsets,
+            cutout: '55%'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            animateRotate: true,
+            animateScale: true,
+            duration: 1200,
+            easing: 'easeOutCubic'
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.92)',
+              padding: 14,
+              cornerRadius: 16,
+              titleFont: { size: 13, weight: '700' },
+              bodyFont: { size: 12 },
+              callbacks: {
+                label(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  return `${label}: ${value}%`;
+                }
+              }
+            }
+          }
+        },
+        plugins: [createPieLabelPlugin()]
+      });
+    }
+
+    async function loadPredictions() {
+      const stored = sessionStorage.getItem('margin_predictions');
+      predictions = stored ? JSON.parse(stored) : [];
+      renderPredictions();
+      updateStats();
+      renderReportChart();
+      if (predictions.length > 0) {
+        renderCharts();
+      }
+      await loadSupportMessages();
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPredictions);
+  </script>
 </body>
 </html>
