@@ -7,6 +7,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import secrets
 import random
+from ml_model import predict_margin, get_model_info
 from business_config import BUSINESS_TYPES, get_business_fields, get_business
 
 # =====================================================
@@ -24,13 +25,34 @@ app.secret_key = "your_super_secret_key_here_change_in_production"  # ← Change
 # MONGODB — dealers only
 # =====================================================
 
-client             = MongoClient("mongodb+srv://admin:root@cluster0.cvf0hfq.mongodb.net/")
-db                 = client["somesh"]
-dealers_collection = db["dealers"]
-support_collection = db["support_messages"]
+mongodb_available = False
+client = None
+db = None
+dealers_collection = None
+support_collection = None
 
 # Fallback support message storage when MongoDB is unavailable
 support_messages = []
+
+try:
+    client = MongoClient(
+        "mongodb+srv://admin:root@cluster0.cvf0hfq.mongodb.net/?retryWrites=true&w=majority",
+        serverSelectionTimeoutMS=5000
+    )
+    client.admin.command("ping")
+    db = client["somesh"]
+    dealers_collection = db["dealers"]
+    support_collection = db["support_messages"]
+    mongodb_available = True
+except Exception as e:
+    print(f"Warning: MongoDB unavailable: {e}")
+    print("MongoDB Atlas is not reachable. Continuing with in-memory fallback for support messages.")
+
+
+def require_db():
+    if not mongodb_available:
+        return jsonify({"error": "MongoDB is temporarily unavailable."}), 503
+    return None
 
 # =====================================================
 # GMAIL CONFIG
@@ -206,19 +228,24 @@ def send_verification_email(dealer_email, dealer_name, token):
 # =====================================================
 
 def seed_dealers():
-    if dealers_collection.count_documents({}) == 0:
-        sample_dealers = [
-            {
-                "name": "SunPower Solar Solutions",
-                "business_type": "retailer",
-                "phone": "+91 98001 11001",
-                "email": "sunpower@example.com",
-                "city": "Jaipur", "state": "Rajasthan",
-                "address": "12, Tonk Road, Jaipur",
-                "email_verified": False,
-                "verify_token": secrets.token_urlsafe(32),
-                "created_at": datetime.utcnow()
-            },
+    if not mongodb_available:
+        print("Skipping dealer seeding because MongoDB is unavailable.")
+        return
+
+    try:
+        if dealers_collection.count_documents({}) == 0:
+            sample_dealers = [
+                {
+                    "name": "SunPower Solar Solutions",
+                    "business_type": "retailer",
+                    "phone": "+91 98001 11001",
+                    "email": "sunpower@example.com",
+                    "city": "Jaipur", "state": "Rajasthan",
+                    "address": "12, Tonk Road, Jaipur",
+                    "email_verified": False,
+                    "verify_token": secrets.token_urlsafe(32),
+                    "created_at": datetime.utcnow()
+                },
             {
                 "name": "GreenWatt Distributors",
                 "business_type": "distributor",
@@ -244,6 +271,8 @@ def seed_dealers():
         ]
         dealers_collection.insert_many(sample_dealers)
         print("Sample dealers inserted into MongoDB.")
+    except Exception as e:
+        print(f"Dealer seeding failed: {e}")
 
 seed_dealers()
 
@@ -553,6 +582,25 @@ def get_businesses():
     """Return all available business types and their configurations"""
     return jsonify(BUSINESS_TYPES)
 
+
+def map_business_input_to_ml_features(business_type, form_data):
+    if business_type == "solar":
+        quantity = float(form_data.get("system_capacity", 1))
+        unit_price = float(form_data.get("panel_cost", 0)) / max(quantity, 1)
+        total_value = float(form_data.get("selling_price", 0))
+        # Features must match training order: [Quantity, Unit_Price, Total_Value, type]
+        return [quantity, unit_price, total_value, 1]
+
+    if business_type == "paperbags":
+        quantity = float(form_data.get("quantity", 1))
+        unit_price = float(form_data.get("production_cost", 0))
+        total_value = quantity * unit_price
+        # Features must match training order: [Quantity, Unit_Price, Total_Value, type]
+        return [quantity, unit_price, total_value, 0]
+
+    raise ValueError("ML prediction is only available for solar and paperbags")
+
+
 @app.route("/api/predict", methods=["POST"])
 def predict_multi_business():
     """Generic prediction endpoint for any business type"""
@@ -582,17 +630,34 @@ def predict_multi_business():
             else:
                 form_data[field["name"]] = value
         
-        # Calculate margin based on business type
-        margin = calculate_margin(business_type, form_data)
-        
-        # Create result object
+        model_info = get_model_info()
+        accuracy = 0
+        margin = None
+        prediction_source = "Formula estimate"
+
+        if business_type in {"solar", "paperbags"} and model_info.get("model_loaded"):
+            try:
+                features = map_business_input_to_ml_features(business_type, form_data)
+                margin = predict_margin(features)
+                accuracy = model_info.get("model_quality", 0) or 0
+                prediction_source = "ML model"
+            except Exception as ml_err:
+                print(f"ML prediction failed, falling back to formula: {ml_err}")
+                margin = calculate_margin(business_type, form_data)
+        else:
+            margin = calculate_margin(business_type, form_data)
+
+        labels, values = generate_time_series(margin)
+
         result = {
             "margin": round(margin, 2),
             "business_type": business_type,
             "display_name": config["display_name"],
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "inputs": form_data,
-            "accuracy": 98
+            "accuracy": round(accuracy, 2) if accuracy else 0,
+            "prediction_source": prediction_source,
+            "trend": {"labels": labels, "values": values}
         }
         
         # Store in session
@@ -610,134 +675,126 @@ def predict_multi_business():
 def calculate_margin(business_type, form_data):
     """Calculate margin based on business type with realistic variance"""
     import random
-    
-    # Add realistic market variance (±2-5%) to simulate market fluctuations
-    variance = random.uniform(-3, 5)
-    
+
+    variance = random.uniform(-4, 8)
+
+    def clamp(value, minimum=0):
+        return round(max(minimum, value), 2)
+
     if business_type == "electronics":
-        # Electronics: (Selling Price - Unit Cost) / Selling Price * 100
         quantity = form_data.get("quantity", 1)
         unit_price = form_data.get("unit_price", 0)
         selling_price = form_data.get("selling_price", 0)
         operational_cost = form_data.get("operational_cost", 0)
-        
+
         total_cost = (unit_price * quantity) + operational_cost
-        if selling_price <= 0 or total_cost >= selling_price:
-            return round(max(12.0, (selling_price / max(total_cost, 1)) * 8) + variance, 2)
-        
+        if selling_price <= 0:
+            return clamp(10 + variance, 8)
+
         margin = ((selling_price - total_cost) / selling_price) * 100
-        return round(max(8.0, margin + variance), 2)
-    
+        return clamp(margin + variance, 6)
+
     elif business_type == "solar":
-        # Solar: (Revenue - Total Cost) / Revenue * 100
         panel_cost = form_data.get("panel_cost", 0)
         inverter_cost = form_data.get("inverter_cost", 0)
         installation_cost = form_data.get("installation_cost", 0)
         selling_price = form_data.get("selling_price", 0)
-        
+
         total_cost = panel_cost + inverter_cost + installation_cost
-        if selling_price <= 0 or total_cost >= selling_price:
-            return round(max(18.0, (selling_price / max(total_cost, 1)) * 12) + variance, 2)
-        
+        if selling_price <= 0:
+            return clamp(18 + variance, 10)
+
         margin = ((selling_price - total_cost) / selling_price) * 100
-        return round(max(12.0, margin + variance), 2)
-    
+        return clamp(margin + variance, 8)
+
     elif business_type == "paperbags":
-        # Paper Bags: (Unit Revenue - Unit Cost) / Unit Revenue * 100
         quantity = form_data.get("quantity", 1)
         production_cost = form_data.get("production_cost", 0)
         selling_price = form_data.get("selling_price", 0)
         overhead_cost = form_data.get("overhead_cost", 0)
-        
-        total_unit_cost = production_cost + (overhead_cost / max(quantity, 1))
-        if selling_price <= 0 or total_unit_cost >= selling_price:
-            return round(max(20.0, (selling_price / max(total_unit_cost, 1)) * 18) + variance, 2)
-        
+
+        per_unit_overhead = overhead_cost / max(quantity, 1)
+        total_unit_cost = production_cost + per_unit_overhead
+        if selling_price <= 0:
+            return clamp(22 + variance, 15)
+
         margin = ((selling_price - total_unit_cost) / selling_price) * 100
-        return round(max(15.0, margin + variance), 2)
-    
+        return clamp(margin + variance, 10)
+
     elif business_type == "apparel":
-        # Apparel: (Selling Price - Cost) / Selling Price * 100
         quantity = form_data.get("quantity", 1)
         cost_per_unit = form_data.get("cost_per_unit", 0)
         selling_price = form_data.get("selling_price", 0)
         overhead = form_data.get("overhead", 0)
-        
+
+        total_revenue = selling_price * quantity
         total_cost = (cost_per_unit * quantity) + overhead
-        if selling_price <= 0 or total_cost >= selling_price:
-            return round(max(25.0, (selling_price / max(total_cost, 1)) * 22) + variance, 2)
-        
-        margin = ((selling_price - total_cost) / selling_price) * 100
-        return round(max(18.0, margin + variance), 2)
-    
+        if total_revenue <= 0:
+            return clamp(16 + variance, 10)
+
+        margin = ((total_revenue - total_cost) / total_revenue) * 100
+        return clamp(margin + variance, 8)
+
     elif business_type == "food":
-        # Food: (Daily Sales - COGS - Fixed Costs) / Daily Sales * 100
         daily_sales = form_data.get("daily_sales", 0)
         cogs_percentage = form_data.get("cogs_percentage", 30)
         fixed_costs = form_data.get("fixed_costs", 0)
         monthly_days = form_data.get("monthly_days", 30)
-        
+
         daily_fixed = fixed_costs / max(monthly_days, 1)
         daily_cogs = daily_sales * (cogs_percentage / 100)
         total_daily_costs = daily_cogs + daily_fixed
-        
-        if daily_sales <= 0 or total_daily_costs >= daily_sales:
-            return round(max(12.0, ((daily_sales - total_daily_costs) / max(daily_sales, 1)) * 100 + 15) + variance, 2)
-        
+        if daily_sales <= 0:
+            return clamp(10 + variance, 5)
+
         margin = ((daily_sales - total_daily_costs) / daily_sales) * 100
-        return round(max(8.0, margin + variance), 2)
-    
+        return clamp(margin + variance, 4)
+
     elif business_type == "retail":
-        # Retail: (Sales - Fixed - Variable) / Sales * 100
         monthly_sales = form_data.get("monthly_sales", 0)
         avg_margin_percentage = form_data.get("avg_margin_percentage", 20)
         fixed_costs = form_data.get("fixed_costs", 0)
         variable_costs = form_data.get("variable_costs", 0)
-        
+
         gross_profit = monthly_sales * (avg_margin_percentage / 100)
         net_profit = gross_profit - fixed_costs - variable_costs
-        
-        if monthly_sales <= 0 or net_profit <= 0:
-            return round(max(avg_margin_percentage - 2, 12.0) + variance, 2)
-        
+        if monthly_sales <= 0:
+            return clamp(12 + variance, 8)
+
         margin = (net_profit / monthly_sales) * 100
-        return round(max(10.0, margin + variance), 2)
-    
+        return clamp(margin + variance, 5)
+
     elif business_type == "manufacturing":
-        # Manufacturing: (Selling - Materials - Labor - Overhead) / Selling * 100
         monthly_production = form_data.get("monthly_production", 1)
         raw_material_cost = form_data.get("raw_material_cost", 0)
         labor_cost = form_data.get("labor_cost", 0)
         selling_price = form_data.get("selling_price", 0)
         factory_overhead = form_data.get("factory_overhead", 0)
-        
-        total_cost = (raw_material_cost + labor_cost) * monthly_production + factory_overhead
+
         total_revenue = selling_price * monthly_production
-        
-        if total_revenue <= 0 or total_cost >= total_revenue:
-            return round(max(15.0, (total_revenue / max(total_cost, 1)) * 10) + variance, 2)
-        
+        total_cost = (raw_material_cost + labor_cost) * monthly_production + factory_overhead
+        if total_revenue <= 0:
+            return clamp(14 + variance, 10)
+
         margin = ((total_revenue - total_cost) / total_revenue) * 100
-        return round(max(12.0, margin + variance), 2)
-    
+        return clamp(margin + variance, 8)
+
     elif business_type == "services":
-        # Services: (Revenue - Direct Costs - Overhead) / Revenue * 100
         hourly_rate = form_data.get("hourly_rate", 0)
         monthly_hours = form_data.get("monthly_hours", 0)
         direct_costs = form_data.get("direct_costs", 0)
         overhead = form_data.get("overhead", 0)
-        
+
         total_revenue = hourly_rate * monthly_hours
         total_costs = (direct_costs * monthly_hours) + overhead
-        
-        if total_revenue <= 0 or total_costs >= total_revenue:
-            return round(max(22.0, (total_revenue / max(total_costs, 1)) * 18) + variance, 2)
-        
+        if total_revenue <= 0:
+            return clamp(18 + variance, 10)
+
         margin = ((total_revenue - total_costs) / total_revenue) * 100
-        return round(max(15.0, margin + variance), 2)
-    
+        return clamp(margin + variance, 8)
+
     else:
-        return round(18.0 + variance, 2)  # Default with variance
+        return clamp(18 + variance, 10)
 
 # =====================================================
 # DEALER API — Add dealer + send verification email
@@ -745,6 +802,10 @@ def calculate_margin(business_type, form_data):
 
 @app.route("/api/dealers/add", methods=["POST"])
 def add_dealer():
+    db_error = require_db()
+    if db_error:
+        return db_error
+
     data = request.get_json()
 
     required = ["name", "business_type", "phone", "email", "city", "address", "state"]
@@ -784,6 +845,10 @@ def add_dealer():
 
 @app.route("/verify-email")
 def verify_email():
+    db_error = require_db()
+    if db_error:
+        return db_error
+
     token = request.args.get("token", "")
 
     if not token:
@@ -830,6 +895,10 @@ def verify_email():
 
 @app.route("/api/dealers", methods=["GET"])
 def get_dealers():
+    db_error = require_db()
+    if db_error:
+        return db_error
+
     business_type = request.args.get("type", "").strip()
 
     if not business_type:
@@ -856,6 +925,10 @@ def get_dealers():
 
 @app.route("/api/dealers/resend-verification", methods=["POST"])
 def resend_verification():
+    db_error = require_db()
+    if db_error:
+        return db_error
+
     data  = request.get_json()
     email = data.get("email", "").strip()
 

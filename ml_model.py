@@ -41,10 +41,14 @@ def load_model():
 
     loaded = joblib.load(MODEL_PATH)
 
-    # Handle both dict format {"model": ..., "features": ...} and direct model
+    # Handle dict format {"model": ..., "features": ..., "metrics": ...}
     if isinstance(loaded, dict) and "model" in loaded:
         model = loaded["model"]
         logger.info(f"Model loaded with features: {loaded.get('features', [])}")
+        if "metrics" in loaded:
+            global _metrics
+            _metrics = loaded["metrics"]
+            logger.info(f"Loaded training metrics: {_metrics}")
     else:
         model = loaded
 
@@ -52,6 +56,9 @@ def load_model():
 
     return model
 
+
+# Initialize metrics dict
+_metrics = {}
 
 try:
     _model = load_model()
@@ -116,9 +123,15 @@ def _validate(input_data):
 # --------------------------------------------------
 def get_model_info():
 
-    return {
+    info = {
         "model_loaded": _model is not None,
         "features": FEATURE_NAMES,
-        "total_features": EXPECTED_FEATURES
+        "total_features": EXPECTED_FEATURES,
+        "metrics": _metrics
     }
+
+    if _metrics and "best_r2" in _metrics:
+        info["model_quality"] = round(_metrics["best_r2"] * 100, 2)
+
+    return info
    
