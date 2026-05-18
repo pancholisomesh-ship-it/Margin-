@@ -1077,6 +1077,10 @@
               <span class="result-detail-label">Prediction Source</span>
               <span class="result-detail-value" id="resultSource">Formula estimate</span>
             </div>
+            <div class="result-detail-row">
+              <span class="result-detail-label">Improvement Suggestion</span>
+              <span class="result-detail-value suggestion" id="resultSuggestion">Get a recommendation after prediction.</span>
+            </div>
           </div>
 
           <div class="chart-title">Profit Margin Pie Chart</div>
@@ -1382,6 +1386,7 @@
       document.getElementById('resultDate').textContent = new Date().toLocaleDateString();
       document.getElementById('resultAccuracy').textContent = data.accuracy ? `${data.accuracy}%` : 'N/A';
       document.getElementById('resultSource').textContent = data.prediction_source || 'Formula estimate';
+      document.getElementById('resultSuggestion').textContent = data.suggestion || 'Review your cost structure and pricing to improve margin.';
 
       // Show results
       document.getElementById('loadingState').style.display = 'none';

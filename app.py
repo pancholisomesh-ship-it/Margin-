@@ -8,6 +8,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import secrets
 import random
+import os
+import json
+import urllib.error
+import urllib.request
 from ml_model import predict_margin, get_model_info
 from business_config import BUSINESS_TYPES, get_business_fields, get_business
 
@@ -71,6 +75,8 @@ def require_db():
 GMAIL_USER     = "your_gmail@gmail.com"   # ← Change this
 GMAIL_PASSWORD = "xxxx xxxx xxxx xxxx"    # ← Paste App Password here
 BASE_URL       = "http://127.0.0.1:5000"  # ← Change to your domain in production
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-1.5-mini")
 
 # =====================================================
 # MEMORY STORE — pre-seeded with demo data
@@ -180,6 +186,176 @@ def generate_time_series(base_value, periods=6):
         noise = random.uniform(-0.05, 0.05)
         values.append(round(base_value * (1 + noise), 2))
     return labels, values
+
+
+def call_gemini_suggestion(prompt_text):
+    if not GEMINI_API_KEY:
+        print("Gemini suggestion skipped: GEMINI_API_KEY is not configured.")
+        return None
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+    if not GEMINI_API_KEY.startswith("AIza"):
+        headers["Authorization"] = f"Bearer {GEMINI_API_KEY}"
+
+    endpoint_templates = [
+        "https://gemini.googleapis.com/v1/models/{model}:generateText",
+        "https://gemini.googleapis.com/v1beta2/models/{model}:generateText",
+        "https://gemini.googleapis.com/v1beta3/models/{model}:generateText",
+        "https://generativelanguage.googleapis.com/v1/models/{model}:generateText",
+        "https://generativelanguage.googleapis.com/v1beta2/models/{model}:generateText"
+    ]
+
+    request_bodies = [
+        {"prompt": prompt_text, "temperature": 0.7, "maxOutputTokens": 400},
+        {"prompt": {"text": prompt_text}, "temperature": 0.7, "maxOutputTokens": 400},
+        {"input": prompt_text, "temperature": 0.7, "maxOutputTokens": 400},
+        {"instances": [{"content": prompt_text}], "temperature": 0.7, "maxOutputTokens": 400},
+        {"instances": [{"input": {"text": prompt_text}}], "temperature": 0.7, "maxOutputTokens": 400}
+    ]
+
+    for endpoint_template in endpoint_templates:
+        url = endpoint_template.format(model=GEMINI_MODEL)
+        if GEMINI_API_KEY.startswith("AIza"):
+            url = f"{url}?key={GEMINI_API_KEY}"
+
+        for body in request_bodies:
+            print("Trying Gemini endpoint:", url)
+            print("Gemini payload type:", type(body), "keys=", list(body.keys()))
+            try:
+                request_body = json.dumps(body).encode("utf-8")
+                req = urllib.request.Request(url, data=request_body, headers=headers, method="POST")
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    raw_response = resp.read().decode("utf-8")
+                    print("Gemini raw response:", raw_response)
+                    response_data = json.loads(raw_response)
+
+                if isinstance(response_data, dict):
+                    if "candidates" in response_data and response_data["candidates"]:
+                        output = response_data["candidates"][0].get("output")
+                        print("Gemini returned candidates output.")
+                        return output
+                    if "outputs" in response_data and response_data["outputs"]:
+                        output = response_data["outputs"][0]
+                        if isinstance(output, dict) and "content" in output:
+                            text_parts = [item.get("text", "") for item in output["content"] if isinstance(item, dict) and "text" in item]
+                            suggestion = "".join(text_parts).strip()
+                            print("Gemini returned outputs content.")
+                            return suggestion
+                    if "response" in response_data:
+                        response_value = response_data["response"].get("text") if isinstance(response_data["response"], dict) else str(response_data["response"])
+                        print("Gemini returned response field.")
+                        return response_value
+
+                print("Gemini response did not contain an expected suggestion field.")
+            except urllib.error.HTTPError as http_err:
+                error_text = http_err.read().decode("utf-8", errors="ignore")
+                print(f"Gemini HTTPError ({url}): {http_err.code} {http_err.reason}. Body: {error_text}")
+                if http_err.code == 404:
+                    break
+            except urllib.error.URLError as url_err:
+                print(f"Gemini URLError ({url}): {url_err}")
+                break
+            except json.JSONDecodeError as json_err:
+                print(f"Gemini JSON decode failed ({url}): {json_err}")
+                break
+            except Exception as e:
+                print(f"Gemini request failed ({url}): {e}")
+                break
+
+    return None
+
+
+def get_improvement_suggestion(business_type, inputs, margin):
+    business_type = business_type.lower()
+    prompt = [
+        f"You are a business consultant helping a {business_type} business improve profit margins.",
+        f"The current predicted margin is {margin:.2f}%.",
+        "The current input values are:",
+    ]
+
+    for key, value in inputs.items():
+        prompt.append(f"- {key}: {value}")
+
+    prompt.append(
+        "Provide a strong, detailed recommendation in plain language on what the business should improve to increase profit margin.")
+    prompt.append("Focus on the largest cost drivers, pricing, and efficiency improvements specific to this business type.")
+    prompt_text = "\n".join(prompt)
+
+    gemini_text = call_gemini_suggestion(prompt_text)
+    if gemini_text:
+        suggestion = gemini_text.strip()
+        if suggestion:
+            print("Gemini suggestion succeeded for", business_type)
+            return suggestion
+
+    print("Gemini suggestion unavailable or empty. Using fallback suggestion for", business_type)
+    # Fallback if Gemini is unavailable
+    suggestion = "Review your cost structure and pricing to improve profit margin."
+
+    if business_type == "solar":
+        total_cost = inputs.get("inverter_cost", 0) + inputs.get("install_cost", 0) + inputs.get("no_of_plates", 0) * inputs.get("plate_cost", 0)
+        if total_cost == 0:
+            return suggestion
+
+        costs = {
+            "Inverter cost": inputs.get("inverter_cost", 0),
+            "Installation cost": inputs.get("install_cost", 0),
+            "Panel cost": inputs.get("no_of_plates", 0) * inputs.get("plate_cost", 0)
+        }
+        largest_cost = max(costs, key=costs.get)
+
+        if margin < 20:
+            suggestion = f"Your margin is low. Focus on reducing {largest_cost} by negotiating with suppliers or optimizing your system design, and consider increasing your selling price if the market allows."
+        elif margin < 35:
+            suggestion = f"Your margin is moderate. Reduce {largest_cost} where possible and keep an eye on total panel and installation costs to push profits higher."
+        else:
+            suggestion = f"Your margin is healthy. Continue optimizing {largest_cost} and maintain sales pricing while reducing cost overruns."
+
+    elif business_type == "paperbags":
+        raw_material = inputs.get("raw_material", 0)
+        labor_cost = inputs.get("labor_cost", 0)
+        delivery_cost = inputs.get("delivery_cost", 0)
+        costs = {
+            "Raw material": raw_material,
+            "Labour": labor_cost,
+            "Delivery": delivery_cost
+        }
+        largest_cost = max(costs, key=costs.get)
+
+        if margin < 25:
+            suggestion = f"Your margin is low. Cut {largest_cost} costs by improving supplier terms or efficiency, and consider a small price increase if customers will accept it."
+        elif margin < 40:
+            suggestion = f"Your margin is okay. Work on reducing {largest_cost} and improving production efficiency to boost profitability further."
+        else:
+            suggestion = f"Your margin looks strong. Keep optimizing {largest_cost} and increase sales volume while controlling variable costs."
+
+    elif business_type == "solar_energy":
+        suggestion = "To improve your energy business margin, reduce installation costs and maximize panel efficiency with better supplier sourcing."
+
+    elif business_type == "electronics":
+        suggestion = "Improve electronics margins by negotiating component prices, lowering operating costs, and possibly increasing your product price band."
+
+    elif business_type == "apparel":
+        suggestion = "Boost apparel margins by reducing production cost per unit, optimizing inventory, and increasing average selling price."
+
+    elif business_type == "food":
+        suggestion = "Improve food margins by lowering food costs, cutting waste, and optimizing fixed overheads without sacrificing sales."
+
+    elif business_type == "retail":
+        suggestion = "Increase retail margins by reducing fixed and variable costs, improving product mix, and negotiating better supplier pricing."
+
+    elif business_type == "manufacturing":
+        suggestion = "Manufacturing margins improve when raw material and labor costs are reduced and production efficiency is increased."
+
+    elif business_type == "services":
+        suggestion = "Improve services margins by raising hourly rates, increasing utilization, and reducing direct costs."
+
+    else:
+        suggestion = "Review your largest cost drivers and pricing strategy to increase your profit margin."
+
+    return suggestion
 
 # =====================================================
 # HELPER — send Gmail verification email
@@ -491,7 +667,14 @@ def predict_solar():
                 "values": [inverter_cost, install_cost, total_plate_cost]
             },
             "trend": {"labels": labels, "values": values}
-        }
+        },
+        "suggestion": get_improvement_suggestion("solar", {
+            "inverter_cost": inverter_cost,
+            "install_cost": install_cost,
+            "selling_price": selling_price,
+            "no_of_plates": no_of_plates,
+            "plate_cost": plate_cost
+        }, gross_margin_pct)
     }
 
     # Store in session instead of global store
@@ -584,7 +767,14 @@ def predict_paperbags():
                 "values": [raw_material, labor_cost, delivery_cost]
             },
             "trend": {"labels": labels, "values": values}
-        }
+        },
+        "suggestion": get_improvement_suggestion("paperbags", {
+            "quantity": quantity,
+            "selling_price": selling_price,
+            "raw_material": raw_material,
+            "labor_cost": labor_cost,
+            "delivery_cost": delivery_cost
+        }, gross_margin_pct)
     }
 
     # Store in session instead of global store
@@ -758,7 +948,8 @@ def predict_multi_business():
             "inputs": form_data,
             "accuracy": round(accuracy, 2) if accuracy else 0,
             "prediction_source": prediction_source,
-            "trend": {"labels": labels, "values": values}
+            "trend": {"labels": labels, "values": values},
+            "suggestion": get_improvement_suggestion(business_type, form_data, margin)
         }
         
         # Store in session
