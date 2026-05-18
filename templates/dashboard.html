@@ -600,7 +600,7 @@
     <nav>
       <a href="/" class="nav-brand">Margin<span>Pro</span></a>
       <ul class="nav-links">
-        <li><a href="/">Home</a></li>
+        <li><a href="/home">Home</a></li>
         <li><a href="/prediction">Predict</a></li>
         <li><a href="/dashboard">Dashboard</a></li>
       </ul>
@@ -719,6 +719,7 @@
       </div>
     </div>
 
+    {% if is_admin %}
     <div class="support-section">
       <div class="section-title">
         <span>🛎️ Support Requests</span>
@@ -731,6 +732,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
 
     <!-- Charts -->
     <div class="charts-grid" id="chartsGrid" style="display: none;">
@@ -771,6 +773,7 @@
       }
     };
 
+    const isAdmin = {{ is_admin|tojson }};
     let predictions = [];
     let marginDistChart = null;
     let businessTypeChart = null;
@@ -784,7 +787,9 @@
       if (predictions.length > 0) {
         renderCharts();
       }
-      await loadSupportMessages();
+      if (isAdmin) {
+        await loadSupportMessages();
+      }
     }
 
     function renderPredictions() {

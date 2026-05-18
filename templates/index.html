@@ -222,28 +222,25 @@ input::placeholder {
   <div id="login-form">
     <div class="field">
       <label>Username</label>
-      <input type="text" placeholder="Enter your username" />
+      <input id="login-username" type="text" placeholder="Enter your username" />
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" placeholder="••••••••" />
+      <input id="login-password" type="password" placeholder="••••••••" />
     </div>
     <button class="btn-primary" onclick="handleLogin()">Sign in</button>
   </div>
 
   <!-- Register Form -->
   <div id="register-form" style="display:none;">
-    <div class="field">
-      <label>Full name</label>
-      <input type="text" placeholder="Your full name" />
-    </div>
+    
     <div class="field">
       <label>Username</label>
-      <input type="text" placeholder="Choose a username" />
+      <input id="register-username" type="text" placeholder="Choose a username" />
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" placeholder="••••••••" />
+      <input id="register-password" type="password" placeholder="••••••••" />
     </div>
     <button class="btn-primary" onclick="handleRegister()">Create account</button>
   </div>
@@ -273,26 +270,55 @@ function switchTab(tab) {
     : 'Already have an account? <a onclick="switchTab(\'login\')">Sign in</a>';
 }
 
-function handleLogin() {
-  window.location.href = "home";  // ← fixed to match actual filename
+async function handleLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+
+  if (!username || !password) {
+    return alert('Please enter both username and password.');
+  }
+
+  const response = await fetch('/api/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username, password})
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    return alert(result.error || 'Login failed.');
+  }
+
+  sessionStorage.removeItem('margin_predictions');
+  window.location.href = '/home';
 }
 
-function handleRegister() {
-  alert("Account created! You can now sign in.");
+async function handleRegister() {
+  const username = document.getElementById('register-username').value.trim();
+  const password = document.getElementById('register-password').value.trim();
+
+  if (!username || !password) {
+    return alert('Please enter username and password for registration.');
+  }
+
+  const response = await fetch('/api/register', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username, password})
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    return alert(result.error || 'Registration failed.');
+  }
+
+  alert(result.message || 'Account created! You can now sign in.');
   switchTab('login');
 }
-function goBusiness() {
-  window.location.href = "prediction";   // ← fixed
-}
 
-fetch("/predict", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-    
-});
+function goBusiness() {
+  window.location.href = 'prediction';
+}
 </script>
 
 </body>

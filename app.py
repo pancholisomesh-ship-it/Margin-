@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_cors import CORS
 from datetime import datetime, timedelta
+from functools import wraps
 from pymongo import MongoClient
 import smtplib
 from email.mime.text import MIMEText
@@ -19,6 +20,9 @@ CORS(app)
 
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = False
 app.secret_key = "your_super_secret_key_here_change_in_production"  # ← Change this in production
 
 # =====================================================
@@ -30,6 +34,7 @@ client = None
 db = None
 dealers_collection = None
 support_collection = None
+users_collection = None
 
 # Fallback support message storage when MongoDB is unavailable
 support_messages = []
@@ -43,6 +48,7 @@ try:
     db = client["somesh"]
     dealers_collection = db["dealers"]
     support_collection = db["support_messages"]
+    users_collection = db["users"]
     mongodb_available = True
 except Exception as e:
     print(f"Warning: MongoDB unavailable: {e}")
@@ -276,6 +282,90 @@ def seed_dealers():
 
 seed_dealers()
 
+
+# =====================================================
+# USER AUTH / SESSION HELPERS
+# =====================================================
+
+auth_users = {
+    "demo": "demo123"
+}
+
+def init_user_session(username, is_admin=False):
+    session.clear()
+    session.permanent = True
+    session['username'] = username
+    session['is_admin'] = bool(is_admin)
+    session['solar_predictions'] = []
+    session['paperbags_predictions'] = []
+    session['predictions'] = []
+    session.modified = True
+
+
+def login_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not session.get('username'):
+            return redirect(url_for('index'))
+        return func(*args, **kwargs)
+    return wrapper
+
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data = request.get_json() or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+
+    if not username or not password:
+        return jsonify({"error": "Username and password are required."}), 400
+
+    if mongodb_available:
+        user = users_collection.find_one({"username": username})
+        if not user or user.get("password") != password:
+            return jsonify({"error": "Invalid username or password."}), 401
+        is_admin = bool(user.get("isAdmin", False))
+    else:
+        if auth_users.get(username) != password:
+            return jsonify({"error": "Invalid username or password."}), 401
+        is_admin = False
+
+    init_user_session(username, is_admin=is_admin)
+    return jsonify({"status": "success", "message": "Logged in successfully."})
+
+
+@app.route("/api/register", methods=["POST"])
+def api_register():
+    data = request.get_json() or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+
+    if not username or not password:
+        return jsonify({"error": "Username and password are required."}), 400
+
+    if mongodb_available:
+        if users_collection.find_one({"username": username}):
+            return jsonify({"error": "Username already exists."}), 409
+        users_collection.insert_one({
+            "username": username,
+            "password": password,
+            "isAdmin": False,
+            "created_at": datetime.utcnow()
+        })
+    else:
+        if username in auth_users:
+            return jsonify({"error": "Username already exists."}), 409
+        auth_users[username] = password
+
+    return jsonify({"status": "success", "message": "Account created. Please sign in."})
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+
 # =====================================================
 # WEBSITE PAGES  (original routes — unchanged)
 # =====================================================
@@ -285,14 +375,17 @@ def index():
     return render_template("index.html")
 
 @app.route("/home")
+@login_required
 def home():
     return render_template("Home.html")
 
 @app.route("/prediction")
+@login_required
 def prediction():
     return render_template("prediction.html")
 
 @app.route("/eco_analytics")
+@login_required
 def eco():
     return render_template("eco.html")
 
@@ -301,10 +394,12 @@ def eco():
 # =====================================================
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
     # Get session-specific predictions, fallback to global store
     solar = session.get('solar_predictions', [])
     paper = session.get('paperbags_predictions', [])
+    is_admin = session.get('is_admin', False)
     
     # Only show current session data, not all historical data
     return render_template("dashboard.html",
@@ -313,7 +408,8 @@ def dashboard():
         solar_history = solar[-10:],
         paper_latest  = paper[-1] if paper else None,
         paper_runs    = len(paper),
-        paper_history = paper[-10:]
+        paper_history = paper[-10:],
+        is_admin = is_admin
     )
 
 # =====================================================
@@ -322,11 +418,12 @@ def dashboard():
 
 @app.route("/api/clear-session", methods=["POST"])
 def clear_session():
-    """Clear the current user's session data to start fresh"""
+    """Clear the current user's prediction history while keeping them logged in."""
     session['solar_predictions'] = []
     session['paperbags_predictions'] = []
+    session['predictions'] = []
     session.modified = True
-    return jsonify({"status": "success", "message": "Session cleared. Ready for new user."})
+    return jsonify({"status": "success", "message": "Session cleared. Ready for new data."})
 
 # =====================================================
 # DASHBOARD JSON API
@@ -565,7 +662,11 @@ def submit_support_message():
     return jsonify({"status": "success", "message": "Support request submitted."}), 201
 
 @app.route("/api/support-messages", methods=["GET"])
+@login_required
 def get_support_messages():
+    if not session.get('is_admin'):
+        return jsonify({"error": "Forbidden"}), 403
+
     try:
         messages = list(support_collection.find({}, {"_id": 0}).sort("created_at", -1))
         return jsonify({"support_messages": messages})
